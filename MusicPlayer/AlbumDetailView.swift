@@ -197,12 +197,20 @@ struct AlbumTrackRow: View {
     let onDoubleClick: () -> Void
     
     @State private var isHovered = false
+    @State private var clickCount = 0
+    @State private var clickWorkItem: DispatchWorkItem?
     
     var body: some View {
         HStack {
-            Text("\(track.trackNumber ?? 0)")
-                .frame(width: 40, alignment: .leading)
-                .foregroundColor(.secondary)
+            if let trackNum = track.trackNumber {
+                Text("\(trackNum)")
+                    .frame(width: 40, alignment: .leading)
+                    .foregroundColor(.secondary)
+            } else {
+                Text("-")
+                    .frame(width: 40, alignment: .leading)
+                    .foregroundColor(.secondary)
+            }
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(track.title)
@@ -233,16 +241,33 @@ struct AlbumTrackRow: View {
         .onHover { hovering in
             isHovered = hovering
         }
-        .onTapGesture(count: 2) {
-            onDoubleClick()
-        }
-        .onTapGesture(count: 1) {
-            if let event = NSApp.currentEvent {
-                onSingleClick(event.modifierFlags)
-            } else {
-                onSingleClick([])
-            }
-        }
+        .gesture(
+            TapGesture(count: 2)
+                .onEnded { _ in
+                    clickWorkItem?.cancel()
+                    clickCount = 0
+                    onDoubleClick()
+                }
+                .exclusively(before: TapGesture(count: 1)
+                    .onEnded { _ in
+                        clickCount += 1
+                        clickWorkItem?.cancel()
+                        
+                        let workItem = DispatchWorkItem {
+                            if clickCount == 1 {
+                                if let event = NSApp.currentEvent {
+                                    onSingleClick(event.modifierFlags)
+                                } else {
+                                    onSingleClick([])
+                                }
+                            }
+                            clickCount = 0
+                        }
+                        clickWorkItem = workItem
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+                    }
+                )
+        )
         
         Divider()
     }
