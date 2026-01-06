@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @StateObject private var library = LibraryManager()
@@ -34,6 +35,8 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 600)
+        // The LibraryLocationPicker component presents the alert and open panel when needed
+        LibraryLocationPicker(library: library)
     }
 }
 

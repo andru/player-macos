@@ -68,7 +68,10 @@ MusicPlayer/
 - Dynamic album/artist aggregation from tracks
 - File import with metadata extraction
 - Collection management (create, add, remove)
-- Sample data for demonstration
+- Automatic persistence to .library bundle
+- Sandbox-aware: tries Music directory first, prompts for location if restricted
+- JSON-based storage for tracks and collections
+- Sample data for demonstration (when no saved library exists)
 
 #### 4. User Interface
 
@@ -105,6 +108,8 @@ MusicPlayer/
 ✅ Search functionality with real-time filtering
 ✅ File import via NSOpenPanel
 ✅ Metadata extraction from audio files
+✅ Library persistence to .library bundle with sandbox support
+✅ User-selectable library location with directory picker
 ✅ Sample data for demonstration
 ✅ Proper entitlements for file and music access
 ✅ Modern SwiftUI architecture
@@ -181,7 +186,6 @@ To run the application:
 - No queue management (plays single track)
 - No shuffle/repeat modes
 - No playlist editing UI (can create collections)
-- No persistence (library resets on restart)
 
 ### Potential Enhancements
 
@@ -191,7 +195,6 @@ See README.md for full list of future enhancements including:
 - Queue management and shuffle/repeat
 - Keyboard shortcuts
 - Mini player mode
-- Library persistence
 - iCloud sync
 - Smart playlists
 

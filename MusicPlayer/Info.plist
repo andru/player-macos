@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	
+	<!-- Document types so the system associates .library files with this app -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Vibez Library</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.vibez.musiclibrary</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Owner</string>
+			<key>CFBundleTypeIconFiles</key>
+			<array>
+				<string>AppIcon</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Export a UTI for .library that conforms to com.apple.package so Finder treats it as a package -->
+	<key>UTExportedTypeDeclarations</key>
+	<dict>
+		<key>com.vibez.musiclibrary</key>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.vibez.musiclibrary</string>
+			<key>UTTypeDescription</key>
+			<string>Vibez Music Library</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>com.apple.package</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<string>library</string>
+				<key>public.mime-type</key>
+				<string>application/x-vibez-library</string>
+			</dict>
+		</dict>
+	</dict>
+
+	<!-- Keep asset catalog referencing as before -->
+	<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+	<string>AppIcon</string>
+	<key>ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME</key>
+	<string>AccentColor</string>
+</dict>
+</plist>
