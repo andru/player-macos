@@ -8,6 +8,27 @@ struct AlbumDetailView: View {
     @State private var selectedTrackIDs: Set<UUID> = []
     @State private var lastSelectedTrackID: UUID?
     
+    // Cache sorted tracks and total duration since album doesn't change
+    private var sortedTracks: [Track] {
+        album.tracks.sorted { (t1, t2) in
+            let n1 = t1.trackNumber ?? Int.max
+            let n2 = t2.trackNumber ?? Int.max
+            return n1 < n2
+        }
+    }
+    
+    private var totalDuration: String {
+        let total = album.tracks.reduce(0) { $0 + $1.duration }
+        let hours = Int(total) / 3600
+        let minutes = (Int(total) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Top section with album info
@@ -144,26 +165,6 @@ struct AlbumDetailView: View {
             }
             .buttonStyle(.plain)
             .padding(16)
-        }
-    }
-    
-    private var sortedTracks: [Track] {
-        album.tracks.sorted { (t1, t2) in
-            let n1 = t1.trackNumber ?? Int.max
-            let n2 = t2.trackNumber ?? Int.max
-            return n1 < n2
-        }
-    }
-    
-    private var totalDuration: String {
-        let total = album.tracks.reduce(0) { $0 + $1.duration }
-        let hours = Int(total) / 3600
-        let minutes = (Int(total) % 3600) / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else {
-            return "\(minutes)m"
         }
     }
     
