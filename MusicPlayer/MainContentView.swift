@@ -13,67 +13,73 @@ struct MainContentView: View {
     private let albumsViewModeKey = "albumsViewMode"
     private let songsViewModeKey = "songsViewMode"
     
+    // Make `body` available for the deployment target (macOS 13+). If any
+    // APIs used inside require macOS 14+, guard with `if #available` there.
     var body: some View {
-        VStack(spacing: 0) {
-            // Toolbar
-            HStack {
-                Text(viewTitle)
-                    .font(.title)
-                    .bold()
-                
-                Spacer()
-                
-                // View mode toggle
-                HStack(spacing: 4) {
-                    Button(action: { 
-                        displayMode = .grid
-                        saveViewMode()
-                    }) {
-                        Image(systemName: "square.grid.2x2")
-                            .foregroundColor(displayMode == .grid ? .primary : .secondary)
-                    }
-                    .buttonStyle(.plain)
+        if #available(macOS 14.0, *) {
+            VStack(spacing: 0) {
+                // Toolbar
+                HStack {
+                    Text(viewTitle)
+                        .font(.title)
+                        .bold()
                     
-                    Button(action: { 
-                        displayMode = .list
-                        saveViewMode()
-                    }) {
-                        Image(systemName: "list.bullet")
-                            .foregroundColor(displayMode == .list ? .primary : .secondary)
+                    Spacer()
+                    
+                    // View mode toggle
+                    HStack(spacing: 4) {
+                        Button(action: {
+                            displayMode = .grid
+                            saveViewMode()
+                        }) {
+                            Image(systemName: "square.grid.2x2")
+                                .foregroundColor(displayMode == .grid ? .primary : .secondary)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button(action: {
+                            displayMode = .list
+                            saveViewMode()
+                        }) {
+                            Image(systemName: "list.bullet")
+                                .foregroundColor(displayMode == .list ? .primary : .secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    .padding(4)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(6)
+                    
+                    // Import button
+                    Button(action: { Task { await importMusic() } }) {
+                        HStack {
+                            Image(systemName: "plus")
+                            Text("Import")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .padding(4)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(6)
+                .padding()
                 
-                // Import button
-                Button(action: { Task { await importMusic() } }) {
-                    HStack {
-                        Image(systemName: "plus")
-                        Text("Import")
+                Divider()
+                
+                // Content
+                ScrollView {
+                    if displayMode == .grid {
+                        gridView
+                    } else {
+                        listView
                     }
                 }
-                .buttonStyle(.borderedProminent)
             }
-            .padding()
-            
-            Divider()
-            
-            // Content
-            ScrollView {
-                if displayMode == .grid {
-                    gridView
-                } else {
-                    listView
-                }
+            .onAppear {
+                loadViewMode()
             }
-        }
-        .onAppear {
-            loadViewMode()
-        }
-        .onChange(of: selectedView) {
-            loadViewMode()
+            .onChange(of: selectedView) { _ in
+                loadViewMode()
+            }
+        } else {
+            // Fallback on earlier versions
         }
     }
     
