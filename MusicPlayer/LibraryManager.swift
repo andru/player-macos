@@ -1,33 +1,26 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 
+@MainActor
 class LibraryManager: ObservableObject {
-    @Published var tracks: [Track] = [] {
-        didSet {
-            if isLoaded {
-                saveLibrary()
-            }
-        }
-    }
-    @Published var collections: [Collection] = [] {
-        didSet {
-            if isLoaded {
-                saveLibrary()
-            }
-        }
-    }
-    
+    // Persistent library state
+    @Published var tracks: [Track] = []
+    @Published var collections: [Collection] = []
+
+    // UI / setup state
     @Published var needsLibraryLocationSetup = false
-    
-    private let libraryFileName = "MusicLibrary.json"
-    private let libraryPathKey = "LibraryBundlePath"
-    private var isLoaded = false
-    private var saveWorkItem: DispatchWorkItem?
-    private let saveDebounceInterval: TimeInterval = 0.5  // Wait 0.5 seconds before saving
-    
+    @Published var libraryURL: URL? = nil
+
+    // Internal
+    private let libraryFileName = "library.json"
+    private let bookmarkKey = "MusicPlayerLibraryBookmark"
+    private var isSecurityScoped = false
+    private var securityScopedURL: URL? = nil
+
+    // MARK: - Derived views
     var albums: [Album] {
         var albumDict: [String: Album] = [:]
-        
+
         for track in tracks {
             let key = "\(track.album)-\(track.artist)"
             if var album = albumDict[key] {
@@ -38,20 +31,19 @@ class LibraryManager: ObservableObject {
                     name: track.album,
                     artist: track.artist,
                     artworkURL: track.artworkURL,
-                    artworkData: track.artworkData,
                     tracks: [track],
                     year: track.year
                 )
                 albumDict[key] = album
             }
         }
-        
+
         return Array(albumDict.values).sorted { $0.name < $1.name }
     }
-    
+
     var artists: [Artist] {
         var artistDict: [String: Artist] = [:]
-        
+
         for album in albums {
             if var artist = artistDict[album.artist] {
                 artist.albums.append(album)
@@ -61,44 +53,17 @@ class LibraryManager: ObservableObject {
                 artistDict[album.artist] = artist
             }
         }
-        
+
         return Array(artistDict.values).sorted { $0.name < $1.name }
     }
-    
+
+    // MARK: - Init
     init() {
-        // Load existing library data, or use sample data if none exists
-        loadLibrary()
-        isLoaded = true
-    }
-    
-    // MARK: - Persistence
-    
-    /// Store library bundle path in UserDefaults
-    private func storeLibraryPath(_ url: URL) {
-        UserDefaults.standard.set(url.path, forKey: libraryPathKey)
-    }
-    
-    /// Get the URL for the library file in .library bundle
-    private func getLibraryFileURL() -> URL? {
-        // Check if user has previously selected a library location
-        if let storedPath = UserDefaults.standard.string(forKey: libraryPathKey) {
-            let storedURL = URL(fileURLWithPath: storedPath)
-            // Validate that the directory still exists and is accessible
-            if FileManager.default.fileExists(atPath: storedURL.path) {
-                return storedURL.appendingPathComponent(libraryFileName)
-            } else {
-                print("Previously selected library location no longer exists: \(storedPath)")
-                // Clear invalid path
-                UserDefaults.standard.removeObject(forKey: libraryPathKey)
-            }
-        }
-        
-        // Try to use Music directory (may fail due to sandbox restrictions)
-        if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
-            let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
-            
-            // Test if we can create/access the directory
-            if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
+        // Attempt to restore a persisted library location via a security-scoped bookmark
+        if !restoreLibraryFromBookmark() {
+            // Try default ~/Music/MusicPlayer.library
+            if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
+                let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
                 do {
                     try FileManager.default.createDirectory(at: libraryBundleURL, withIntermediateDirectories: true, attributes: nil)
                 } catch {
@@ -107,8 +72,14 @@ class LibraryManager: ObservableObject {
                     DispatchQueue.main.async { [weak self] in
                         self?.needsLibraryLocationSetup = true
                     }
-                    return nil
+                } catch {
+                    print("LibraryManager: couldn't setup default library: \(error)")
+                    needsLibraryLocationSetup = true
+                    loadSampleData()
                 }
+            } else {
+                needsLibraryLocationSetup = true
+                loadSampleData()
             }
             
             // Store this path for future use
@@ -163,131 +134,216 @@ class LibraryManager: ObservableObject {
         // Schedule the save operation after the debounce interval
         DispatchQueue.main.asyncAfter(deadline: .now() + saveDebounceInterval, execute: workItem)
     }
-    
-    /// Perform the actual save operation to disk
-    private func performSave() {
-        guard let fileURL = getLibraryFileURL() else {
-            print("Error: Could not get library file URL")
-            return
-        }
-        
-        let libraryData = LibraryData(tracks: tracks, collections: collections)
-        
-        do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .prettyPrinted
-            let data = try encoder.encode(libraryData)
-            try data.write(to: fileURL, options: .atomic)
-            print("Library saved to: \(fileURL.path)")
-        } catch {
-            print("Error saving library: \(error)")
-        }
-    }
-    
-    /// Load the library data from disk
-    private func loadLibrary() {
-        guard let fileURL = getLibraryFileURL() else {
-            print("Error: Could not get library file URL, loading sample data")
-            loadSampleData()
-            return
-        }
-        
-        // Check if file exists
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            print("No existing library file found, loading sample data")
-            loadSampleData()
-            return
-        }
-        
-        do {
-            let data = try Data(contentsOf: fileURL)
-            let decoder = JSONDecoder()
-            let libraryData = try decoder.decode(LibraryData.self, from: data)
-            
-            tracks = libraryData.tracks
-            collections = libraryData.collections
-            
-            print("Library loaded from: \(fileURL.path)")
-            print("Loaded \(tracks.count) tracks and \(collections.count) collections")
-        } catch {
-            print("Error loading library: \(error), loading sample data")
-            loadSampleData()
-        }
-    }
-    
+
+    // MARK: - Public API
     func addTrack(_ track: Track) {
         tracks.append(track)
+        saveLibrary()
     }
-    
+
     func removeTrack(_ track: Track) {
         tracks.removeAll { $0.id == track.id }
+        saveLibrary()
     }
-    
+
     func addCollection(_ collection: Collection) {
         collections.append(collection)
+        saveLibrary()
     }
-    
+
     func removeCollection(_ collection: Collection) {
         collections.removeAll { $0.id == collection.id }
+        saveLibrary()
     }
-    
+
+    /// Called by UI when user selects a folder to host the library.
+    func setLibraryLocation(url: URL) {
+        // User's selected folder -> create/ensure MusicPlayer.library inside it
+        let libraryBundleURL = url.appendingPathComponent("MusicPlayer.library", isDirectory: true)
+
+        // Stop previous access if any
+        stopAccessingSecurityScopedURLIfNeeded()
+
+        do {
+            if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
+                try createLibraryBundle(at: libraryBundleURL)
+            }
+
+            try startAccessingAndLoad(at: libraryBundleURL)
+            persistBookmark(for: libraryBundleURL)
+            needsLibraryLocationSetup = false
+        } catch {
+            print("LibraryManager: failed to set library location: \(error)")
+            needsLibraryLocationSetup = true
+        }
+    }
+
+    // MARK: - Bundle creation
+    private func createLibraryBundle(at bundleURL: URL) throws {
+        let fm = FileManager.default
+
+        // Create bundle, Contents, and Resources folders
+        try fm.createDirectory(at: bundleURL, withIntermediateDirectories: true, attributes: nil)
+        let contentsURL = bundleURL.appendingPathComponent("Contents", isDirectory: true)
+        let resourcesURL = contentsURL.appendingPathComponent("Resources", isDirectory: true)
+        try fm.createDirectory(at: contentsURL, withIntermediateDirectories: true, attributes: nil)
+        try fm.createDirectory(at: resourcesURL, withIntermediateDirectories: true, attributes: nil)
+
+        // Write Contents/Info.plist using a minimal template
+        let infoPlist: [String: Any] = [
+            "CFBundlePackageType": "BNDL",
+            "CFBundleIdentifier": "com.musicplayer.library",
+            "CFBundleName": "MusicPlayer Library",
+            "CFBundleShortVersionString": "1.0",
+            "CFBundleVersion": "1",
+            "CFBundleIconFile": "LibraryIcon.pdf",
+            "VibezLibraryFormatVersion": 1
+        ]
+
+        let plistData = try PropertyListSerialization.data(fromPropertyList: infoPlist, format: .xml, options: 0)
+        let infoURL = contentsURL.appendingPathComponent("Info.plist")
+        try plistData.write(to: infoURL, options: .atomic)
+
+        // Create initial empty library JSON in Contents/Resources/
+        let initial = LibraryFile(version: 1, tracks: [], collections: [])
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let data = try encoder.encode(initial)
+        let libraryJSONURL = resourcesURL.appendingPathComponent(libraryFileName)
+        try data.write(to: libraryJSONURL, options: .atomic)
+
+        // Copy an embedded LibraryIcon.pdf into Resources if present in app bundle
+        if let iconURL = Bundle.main.url(forResource: "LibraryIcon", withExtension: "pdf") {
+            let dest = resourcesURL.appendingPathComponent("LibraryIcon.pdf")
+            try? fm.copyItem(at: iconURL, to: dest)
+        }
+    }
+
+    // MARK: - Load / Save
+    private func startAccessingAndLoad(at bundleURL: URL) throws {
+        // Begin security-scoped access if available (sandboxed apps need this for user-chosen locations)
+        if bundleURL.startAccessingSecurityScopedResource() {
+            isSecurityScoped = true
+            securityScopedURL = bundleURL
+        }
+        self.libraryURL = bundleURL
+        try loadLibrary()
+    }
+
+    private func stopAccessingSecurityScopedURLIfNeeded() {
+        if isSecurityScoped, let u = securityScopedURL {
+            u.stopAccessingSecurityScopedResource()
+            isSecurityScoped = false
+            securityScopedURL = nil
+        }
+    }
+
+    private func loadLibrary() throws {
+        guard let bundleURL = libraryURL else { return }
+        let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
+
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: libraryJSON.path) {
+            // No saved library yet: write initial file and keep sample data
+            saveLibrary()
+            return
+        }
+
+        let data = try Data(contentsOf: libraryJSON)
+        let decoder = JSONDecoder()
+        let file = try decoder.decode(LibraryFile.self, from: data)
+        self.tracks = file.tracks
+        self.collections = file.collections
+    }
+
+    func saveLibrary() {
+        guard let bundleURL = libraryURL else { return }
+        let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
+
+        let file = LibraryFile(version: 1, tracks: tracks, collections: collections)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        do {
+            let data = try encoder.encode(file)
+            try data.write(to: libraryJSON, options: .atomic)
+        } catch {
+            print("LibraryManager: failed to save library: \(error)")
+        }
+    }
+
+    // MARK: - Bookmarks
+    private func persistBookmark(for url: URL) {
+        do {
+            let bookmarkData = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+            UserDefaults.standard.set(bookmarkData, forKey: bookmarkKey)
+            UserDefaults.standard.synchronize()
+        } catch {
+            print("LibraryManager: failed to create bookmark: \(error)")
+        }
+    }
+
+    private func restoreLibraryFromBookmark() -> Bool {
+        guard let bookmarkData = UserDefaults.standard.data(forKey: bookmarkKey) else { return false }
+        var isStale = false
+        do {
+            let url = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &isStale)
+            if isStale {
+                print("LibraryManager: bookmark is stale")
+            }
+
+            try startAccessingAndLoad(at: url)
+            return true
+        } catch {
+            print("LibraryManager: failed to resolve bookmark: \(error)")
+            return false
+        }
+    }
+
+    // MARK: - Track creation and metadata helpers
     func importFiles(urls: [URL]) async {
-        var newTracks: [Track] = []
         for url in urls {
             if let track = await createTrack(from: url) {
-                newTracks.append(track)
+                tracks.append(track)
             }
         }
-        
-        // Add all tracks at once to trigger save only once
-        if !newTracks.isEmpty {
-            tracks.append(contentsOf: newTracks)
-        }
+        saveLibrary()
     }
-    
-    private  func createTrack(from url: URL) async -> Track? {
+
+    private func createTrack(from url: URL) async -> Track? {
         let asset = AVAsset(url: url)
-        
+
         // Extract metadata
         var title = url.deletingPathExtension().lastPathComponent
         var artist = "Unknown Artist"
         var album = "Unknown Album"
-        var artworkData: Data? = nil
-        
+
         // Load duration and metadata using availability-safe helper
         let (duration, metadataItems) = await loadDurationAndMetadata(for: asset)
-        
+
         for item in metadataItems {
+            // Prefer modern async loading on macOS 13+
+            var valueString: String? = nil
+            if #available(macOS 13.0, *) {
+                if let sv: String = try? await item.load(.stringValue) {
+                    valueString = sv
+                } else if let v = try? await item.load(.value) {
+                    if let s = v as? String { valueString = s }
+                    else if let n = v as? NSNumber { valueString = n.stringValue }
+                    else { valueString = String(describing: v) }
+                }
+            } else {
+                // Legacy fallback
+                valueString = item.stringValue
+                if valueString == nil {
+                    if let v = item.value as? String { valueString = v }
+                    else if let v = item.value as? NSNumber { valueString = v.stringValue }
+                    else if let v = item.value { valueString = String(describing: v) }
+                }
+            }
+
             let key = item.commonKey?.rawValue
-            
-            // Handle artwork separately
-            if key == "artwork" {
-                // Try to extract artwork data from various possible formats
-                if let data = item.value as? Data {
-                    artworkData = data
-                } else if let dict = item.value as? [AnyHashable: Any],
-                          let imageData = dict["data"] as? Data {
-                    artworkData = imageData
-                } else if let nsData = item.dataValue {
-                    artworkData = nsData
-                }
-                continue
-            }
-            
-            // Try stringValue first, then fall back to the raw value for better compatibility
-            var valueString: String? = item.stringValue
-            if valueString == nil {
-                if let v = item.value as? String {
-                    valueString = v
-                } else if let v = item.value as? NSNumber {
-                    valueString = v.stringValue
-                } else if let v = item.value {
-                    // Last resort: string-describe the value
-                    valueString = String(describing: v)
-                }
-            }
             guard let keyUnwrapped = key, let value = valueString else { continue }
-            
+
             switch keyUnwrapped {
             case "title":
                 title = value
@@ -299,30 +355,26 @@ class LibraryManager: ObservableObject {
                 break
             }
         }
-        
+
         return Track(
             title: title,
             artist: artist,
             album: album,
             duration: duration,
-            fileURL: url,
-            artworkData: artworkData
+            fileURL: url
         )
     }
 
-    // Helper to centralize AVAsset property loading and keep deprecated APIs isolated
     private func loadDurationAndMetadata(for asset: AVAsset) async -> (TimeInterval, [AVMetadataItem]) {
         var duration: TimeInterval = 0
         var metadataItems: [AVMetadataItem] = []
-        
+
         if #available(macOS 12.0, *) {
-            // Modern async API
             if let durationTime: CMTime = try? await asset.load(.duration), CMTIME_IS_NUMERIC(durationTime) {
                 duration = CMTimeGetSeconds(durationTime)
             }
             metadataItems = (try? await asset.load(.commonMetadata)) ?? []
         } else {
-            // Legacy fallback: use loadValuesAsynchronously and bridge to async
             let (loadedDuration, loadedMetadata) = await withCheckedContinuation { (continuation: CheckedContinuation<(TimeInterval, [AVMetadataItem]), Never>) in
                 let keys = ["duration", "commonMetadata"]
                 asset.loadValuesAsynchronously(forKeys: keys) {
@@ -338,13 +390,12 @@ class LibraryManager: ObservableObject {
             duration = loadedDuration
             metadataItems = loadedMetadata
         }
-        
+
         return (duration, metadataItems)
     }
-    
+
     private func loadSampleData() {
         // Sample tracks for demonstration UI
-        // Note: These use placeholder file paths. Import real music files to play audio.
         let sampleTracks = [
             Track(
                 title: "Sample Song 1",
@@ -377,19 +428,15 @@ class LibraryManager: ObservableObject {
                 trackNumber: 1
             )
         ]
-        
+
         tracks = sampleTracks
-        
-        // Sample collection
-        collections = [
-            Collection(name: "Favorites", trackIDs: [sampleTracks[0].id, sampleTracks[2].id])
-        ]
+        collections = [Collection(name: "Favorites", trackIDs: [sampleTracks[0].id, sampleTracks[2].id])]
     }
 }
 
-// MARK: - Library Data Container
-/// Container for encoding/decoding library data to JSON
-private struct LibraryData: Codable {
-    let tracks: [Track]
-    let collections: [Collection]
+// MARK: - Library file structure used on disk
+private struct LibraryFile: Codable {
+    var version: Int
+    var tracks: [Track]
+    var collections: [Collection]
 }
