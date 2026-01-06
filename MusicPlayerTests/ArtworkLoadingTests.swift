@@ -38,13 +38,9 @@ class ArtworkLoadingTests: XCTestCase {
         try await super.tearDown()
     }
     
-    // MARK: - Artwork Loading Tests
+    // MARK: - Test Helpers
     
-    func testArtworkIsLoadedDuringImport() async throws {
-        // Given: A directory with a test audio file
-        // Note: This test creates a minimal MP3 file with ID3v2 tag containing embedded artwork
-        let musicFile = testDirectory.appendingPathComponent("test.mp3")
-        
+    private func createMinimalMP3File(at url: URL) throws {
         // Create a minimal valid MP3 file with ID3v2.3 tag
         // ID3v2.3 header (10 bytes)
         var mp3Data = Data([
@@ -54,13 +50,18 @@ class ArtworkLoadingTests: XCTestCase {
             0x00, 0x00, 0x00, 0x0A  // Tag size (synchsafe integer)
         ])
         
-        // We won't add actual artwork data in this minimal test
-        // Just verify that the artwork loading mechanism is called
-        
         // Add minimal MP3 frame sync
         mp3Data.append(Data([0xFF, 0xFB]))  // MPEG Audio Frame sync
         
-        try mp3Data.write(to: musicFile)
+        try mp3Data.write(to: url)
+    }
+    
+    // MARK: - Artwork Loading Tests
+    
+    func testArtworkIsLoadedDuringImport() async throws {
+        // Given: A directory with a test audio file
+        let musicFile = testDirectory.appendingPathComponent("test.mp3")
+        try createMinimalMP3File(at: musicFile)
         
         // When: Importing the directory
         await libraryManager.importDirectory(url: testDirectory)
@@ -100,16 +101,7 @@ class ArtworkLoadingTests: XCTestCase {
     func testArtworkDataIsPersisted() async throws {
         // Given: A directory with a test file
         let musicFile = testDirectory.appendingPathComponent("test.mp3")
-        
-        // Create a minimal MP3 file
-        var mp3Data = Data([
-            0x49, 0x44, 0x33,  // "ID3"
-            0x03, 0x00,        // Version 2.3.0
-            0x00,              // Flags
-            0x00, 0x00, 0x00, 0x0A  // Tag size
-        ])
-        mp3Data.append(Data([0xFF, 0xFB]))  // MPEG sync
-        try mp3Data.write(to: musicFile)
+        try createMinimalMP3File(at: musicFile)
         
         // When: Importing and saving
         await libraryManager.importDirectory(url: testDirectory)
