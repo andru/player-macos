@@ -8,55 +8,94 @@ struct MainContentView: View {
     @Binding var searchText: String
     @State private var displayMode: DisplayMode = .grid
     
+    // UserDefaults keys for view mode preferences
+    private let artistsViewModeKey = "artistsViewMode"
+    private let albumsViewModeKey = "albumsViewMode"
+    private let songsViewModeKey = "songsViewMode"
+    
+    // Make `body` available for the deployment target (macOS 13+). If any
+    // APIs used inside require macOS 14+, guard with `if #available` there.
     var body: some View {
-        VStack(spacing: 0) {
-            // Toolbar
-            HStack {
-                Text(viewTitle)
-                    .font(.title)
-                    .bold()
-                
-                Spacer()
-                
-                // View mode toggle
-                HStack(spacing: 4) {
-                    Button(action: { displayMode = .grid }) {
-                        Image(systemName: "square.grid.2x2")
-                            .foregroundColor(displayMode == .grid ? .primary : .secondary)
-                    }
-                    .buttonStyle(.plain)
+        if #available(macOS 14.0, *) {
+            VStack(spacing: 0) {
+                // Toolbar
+                HStack {
+                    Text(viewTitle)
+                        .font(.title)
+                        .bold()
                     
-                    Button(action: { displayMode = .list }) {
-                        Image(systemName: "list.bullet")
-                            .foregroundColor(displayMode == .list ? .primary : .secondary)
+                    Spacer()
+                    
+                    // View mode toggle
+                    HStack(spacing: 4) {
+                        Button(action: {
+                            displayMode = .grid
+                            saveViewMode()
+                        }) {
+                            Image(systemName: "square.grid.2x2")
+                                .foregroundColor(displayMode == .grid ? .primary : .secondary)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button(action: {
+                            displayMode = .list
+                            saveViewMode()
+                        }) {
+                            Image(systemName: "list.bullet")
+                                .foregroundColor(displayMode == .list ? .primary : .secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    .padding(4)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(6)
+                    
+                    // Import button
+                    Button(action: { Task { await importMusicDirectory() } }) {
+                        HStack {
+                            Image(systemName: "plus")
+                            Text("Import")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .padding(4)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(6)
+                .padding()
                 
-                // Import button
-                Button(action: { Task { await importMusic() } }) {
-                    HStack {
-                        Image(systemName: "plus")
-                        Text("Import")
+                Divider()
+                
+                // Import menu
+//                Menu {
+//                    Button(action: { Task { await importMusicFiles() } }) {
+//                        Label("Import Files...", systemImage: "doc.badge.plus")
+//                    }
+//                    Button(action: { Task { await importMusicDirectory() } }) {
+//                        Label("Import Folder...", systemImage: "folder.badge.plus")
+//                    }
+//                } label: {
+//                    HStack {
+//                        Image(systemName: "plus")
+//                        Text("Import")
+//                    }
+//                }
+//                .menuStyle(.borderlessButton)
+//                .buttonStyle(.borderedProminent)
+                // Content
+                ScrollView {
+                    if displayMode == .grid {
+                        gridView
+                    } else {
+                        listView
                     }
                 }
-                .buttonStyle(.borderedProminent)
             }
-            .padding()
-            
-            Divider()
-            
-            // Content
-            ScrollView {
-                if displayMode == .grid {
-                    gridView
-                } else {
-                    listView
-                }
+            .onAppear {
+                loadViewMode()
             }
+            .onChange(of: selectedView) { _ in
+                loadViewMode()
+            }
+        } else {
+            // Fallback on earlier versions
         }
     }
     
@@ -168,7 +207,47 @@ struct MainContentView: View {
         return artists
     }
     
-    private func importMusic() async {
+    private func loadViewMode() {
+        let key: String
+        let defaultMode: DisplayMode
+        
+        switch selectedView {
+        case .artists:
+            key = artistsViewModeKey
+            defaultMode = .grid  // Default: thumbnail
+        case .albums:
+            key = albumsViewModeKey
+            defaultMode = .grid  // Default: thumbnail
+        case .songs:
+            key = songsViewModeKey
+            defaultMode = .list  // Default: list
+        }
+        
+        let savedValue = UserDefaults.standard.string(forKey: key)
+        if let savedValue = savedValue {
+            displayMode = savedValue == "grid" ? .grid : .list
+        } else {
+            displayMode = defaultMode
+        }
+    }
+    
+    private func saveViewMode() {
+        let key: String
+        
+        switch selectedView {
+        case .artists:
+            key = artistsViewModeKey
+        case .albums:
+            key = albumsViewModeKey
+        case .songs:
+            key = songsViewModeKey
+        }
+        
+        let value = displayMode == .grid ? "grid" : "list"
+        UserDefaults.standard.set(value, forKey: key)
+    }
+    
+    private func importMusicFiles() async {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -176,6 +255,20 @@ struct MainContentView: View {
         
         if panel.runModal() == .OK {
             await library.importFiles(urls: panel.urls)
+        }
+    }
+    
+    private func importMusicDirectory() async {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = false
+        panel.message = "Choose a folder to import music from"
+        panel.prompt = "Import"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            await library.importDirectory(url: url)
         }
     }
 }
