@@ -90,16 +90,23 @@ class AudioPlayer: NSObject, ObservableObject {
 
     // MARK: - Queue Management
     
-    func queueTracks(_ tracks: [Track], startPlaying: Bool = true) {
+    func queueTracks(_ tracks: [Track], startPlaying: Bool = true, behavior: PlaybackBehavior = .clearAndPlay) {
         if startPlaying {
-            if (!queue.isEmpty) {
-                tracks.forEach { addToQueue($0) }
-            } else {
+            switch behavior {
+            case .clearAndPlay:
+                // Clear queue and play immediately
                 queue = tracks.map { QueueItem(track: $0, hasBeenPlayed: false) }
                 currentQueueIndex = 0
                 play(track: tracks[0])
+            case .appendToQueue:
+                // Append to end of queue
+                tracks.forEach { addToQueue($0) }
+                // If nothing is currently playing, start playing
+                if currentQueueIndex == -1 && !queue.isEmpty {
+                    currentQueueIndex = 0
+                    play(track: queue[0].track)
+                }
             }
-            
         }
     }
     

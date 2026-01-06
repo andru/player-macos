@@ -19,6 +19,10 @@
 		A1000009000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009000000000000001 /* Assets.xcassets */; };
 		A1000010000000000000001 /* NowPlayingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011000000000000001 /* NowPlayingWidget.swift */; };
 		A1000012000000000000001 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012000000000000001 /* QueueView.swift */; };
+		A1000013000000000000001 /* PreferencesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013000000000000001 /* PreferencesManager.swift */; };
+		A1000014000000000000001 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014000000000000001 /* PreferencesWindow.swift */; };
+		A1000015000000000000001 /* GeneralPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000015000000000000001 /* GeneralPreferencesView.swift */; };
+		A1000016000000000000001 /* PlaybackPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000016000000000000001 /* PlaybackPreferencesView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +40,10 @@
 		A2000010000000000000001 /* MusicPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MusicPlayer.entitlements; sourceTree = "<group>"; };
 		A2000011000000000000001 /* NowPlayingWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingWidget.swift; sourceTree = "<group>"; };
 		A2000012000000000000001 /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
+		A2000013000000000000001 /* PreferencesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesManager.swift; sourceTree = "<group>"; };
+		A2000014000000000000001 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
+		A2000015000000000000001 /* GeneralPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralPreferencesView.swift; sourceTree = "<group>"; };
+		A2000016000000000000001 /* PlaybackPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackPreferencesView.swift; sourceTree = "<group>"; };
 		A3000001000000000000001 /* MusicPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MusicPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -70,6 +78,7 @@
 				A2000009000000000000001 /* Assets.xcassets */,
 				A2000007000000000000001 /* AudioPlayer.swift */,
 				A2000002000000000000001 /* ContentView.swift */,
+				A2000015000000000000001 /* GeneralPreferencesView.swift */,
 				64E0579F2F0D9016004A98C2 /* Info.plist */,
 				64E057A72F0D9016004A98C2 /* LibraryLocationPicker.swift */,
 				A2000005000000000000001 /* MainContentView.swift */,
@@ -77,6 +86,9 @@
 				A2000010000000000000001 /* MusicPlayer.entitlements */,
 				A2000001000000000000001 /* MusicPlayerApp.swift */,
 				A2000011000000000000001 /* NowPlayingWidget.swift */,
+				A2000016000000000000001 /* PlaybackPreferencesView.swift */,
+				A2000013000000000000001 /* PreferencesManager.swift */,
+				A2000014000000000000001 /* PreferencesWindow.swift */,
 				A2000012000000000000001 /* QueueView.swift */,
 				A2000003000000000000001 /* SidebarView.swift */,
 				A2000004000000000000001 /* TopBarView.swift */,
@@ -175,6 +187,10 @@
 				A1000007000000000000001 /* AudioPlayer.swift in Sources */,
 				64E057AD2F0D9016004A98C2 /* LibraryLocationPicker.swift in Sources */,
 				A1000012000000000000001 /* QueueView.swift in Sources */,
+				A1000013000000000000001 /* PreferencesManager.swift in Sources */,
+				A1000014000000000000001 /* PreferencesWindow.swift in Sources */,
+				A1000015000000000000001 /* GeneralPreferencesView.swift in Sources */,
+				A1000016000000000000001 /* PlaybackPreferencesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
