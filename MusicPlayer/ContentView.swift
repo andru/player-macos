@@ -57,10 +57,13 @@ struct ContentView: View {
         panel.prompt = "Choose"
         
         panel.begin { response in
-            if response == .OK, let url = panel.url {
-                // Ensure UI updates happen on main thread
-                DispatchQueue.main.async {
+            DispatchQueue.main.async {
+                if response == .OK, let url = panel.url {
+                    // User selected a location
                     self.library.setLibraryLocation(url: url)
+                } else {
+                    // User cancelled - keep showing sample data
+                    self.library.needsLibraryLocationSetup = false
                 }
             }
         }
