@@ -14,15 +14,22 @@ A native macOS music player and library manager built with Swift and SwiftUI.
     - User-defined collections with "+" button to create new ones
   - **Top Bar:** Playback controls and currently playing track info
     - Play/Pause button
-    - Skip forward/backward buttons
+    - Previous/Next buttons to navigate queue
     - Current track information with album artwork
     - Playback progress bar with time display
+    - Queue button to show/hide queue sidebar
     - Search box to filter library content
   - **Main Content Area:** Display music library in grid or list view
     - Toggle between grid and list display modes
     - Import button to add music files
     - Responsive grid layout for albums, artists, and songs
     - Detailed list view with columns for track metadata
+  - **Right Sidebar (Queue):** View and manage the song queue
+    - Shows all queued tracks with artwork and metadata
+    - Highlights currently playing track
+    - Grays out previously played tracks
+    - Drag-and-drop to reorder queue
+    - Clear queue button
 
 ### Functionality
 
@@ -30,7 +37,9 @@ A native macOS music player and library manager built with Swift and SwiftUI.
   - Built on AVFoundation for native audio playback
   - Support for common audio formats (MP3, M4A, FLAC, WAV, etc.)
   - Real-time playback progress tracking
-  - Skip forward/backward 10 seconds
+  - Song queue with automatic progression
+  - Previous/Next navigation through queue
+  - Played tracks remain visible but grayed out
 
 - **Library Management:**
   - Import music files from your file system
@@ -74,8 +83,22 @@ The app will launch with sample data to demonstrate the interface.
 
 1. Navigate to any view (Artists, Albums, or Songs)
 2. Click on an album, artist, or track to start playback
+   - **Albums:** All tracks in the album are queued automatically
+   - **Artists:** All tracks by the artist are queued automatically
+   - **Individual tracks:** Single track is queued
 3. Use the playback controls in the top bar to control playback
 4. The progress bar shows current playback position
+5. Use Previous/Next buttons to navigate through the queue
+
+### Using the Queue
+
+1. Click the queue button (list icon) in the top bar to show the queue sidebar
+2. The queue displays all upcoming tracks and previously played tracks
+3. Currently playing track is highlighted
+4. Previously played tracks appear grayed out
+5. Drag and drop tracks to reorder the queue
+6. Click any track in the queue to jump to it
+7. Click "Clear" to empty the queue
 
 ### Creating Collections
 
@@ -140,7 +163,6 @@ Potential features for future development:
 - Album artwork loading from embedded metadata or online sources
 - Playlist editing and management
 - Audio equalizer and effects
-- Queue management
 - Shuffle and repeat modes
 - Keyboard shortcuts
 - Mini player mode

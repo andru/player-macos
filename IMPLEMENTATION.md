@@ -8,11 +8,12 @@ This document summarizes the implementation of a complete music player and libra
 
 A native macOS application built with Swift and SwiftUI that provides:
 - Music library management
-- Audio playback with standard controls
+- Audio playback with queue management
 - Multiple viewing modes (Artists, Albums, Songs, Collections)
 - Search and filtering capabilities
 - Grid and list display modes
 - File import functionality
+- Drag-and-drop queue reordering
 
 ### Technical Stack
 
@@ -34,11 +35,13 @@ MusicPlayer/
     ├── Views/
     │   ├── SidebarView.swift        # Left sidebar navigation (200-250px)
     │   ├── TopBarView.swift         # Playback controls and search
-    │   └── MainContentView.swift    # Main content area (grid/list)
+    │   ├── MainContentView.swift    # Main content area (grid/list)
+    │   ├── QueueView.swift          # Queue sidebar (300-350px)
+    │   └── NowPlayingWidget.swift   # Now playing display widget
     ├── Models/
     │   └── MusicModels.swift        # Track, Album, Artist, Collection
     ├── Services/
-    │   ├── AudioPlayer.swift        # Audio playback manager
+    │   ├── AudioPlayer.swift        # Audio playback and queue manager
     │   └── LibraryManager.swift     # Library management
     └── Resources/
         ├── Assets.xcassets/         # App assets and icons
@@ -58,9 +61,12 @@ MusicPlayer/
 #### 2. Audio Player (AudioPlayer.swift)
 - ObservableObject for reactive UI updates
 - AVAudioPlayer integration for playback
+- **QueueItem:** Model for queue entries with played state
+- Queue management (add, clear, navigate, reorder)
+- Auto-advance to next track on completion
+- Previous/Next navigation through queue
 - Real-time progress tracking with Timer
 - Play/Pause/Stop controls
-- Skip forward/backward (10 seconds)
 - Delegate handling for playback completion
 
 #### 3. Library Manager (LibraryManager.swift)
@@ -82,10 +88,19 @@ MusicPlayer/
 - Selection highlighting
 
 **TopBarView:**
-- Playback controls (◀ ⏸ ▶)
+- Playback controls (◀ ⏸ ▶) for queue navigation
 - Current track display with artwork placeholder
 - Progress bar with time labels
+- Queue toggle button
 - Search box with clear button
+
+**QueueView:**
+- Queue sidebar with toggle visibility
+- List of queued tracks with metadata
+- Currently playing track highlighting
+- Played tracks shown grayed out
+- Drag-and-drop reordering support
+- Clear queue button
 
 **MainContentView:**
 - View title and mode toggles
@@ -93,16 +108,22 @@ MusicPlayer/
 - List view with sortable columns
 - Import button with file picker
 - Search filtering
+- Album/artist clicks queue all tracks
 
 ### Features Implemented
 
-✅ Three-panel layout (Sidebar | Main | Top Bar)
+✅ Three-panel layout (Sidebar | Main | Queue)
 ✅ Library views: Artists, Albums, Songs
 ✅ User-defined collections with UI controls
 ✅ Album artwork placeholders
 ✅ Grid view with album/artist/track cards
 ✅ List view with detailed columns
-✅ Playback controls (play, pause, skip)
+✅ Playback controls (play, pause, previous, next)
+✅ **Song queue management**
+✅ **Queue sidebar with drag-and-drop reordering**
+✅ **Auto-queue all tracks when playing albums/artists**
+✅ **Previous/Next buttons navigate queue**
+✅ **Played tracks remain visible but grayed out**
 ✅ Current track display
 ✅ Progress bar with time display
 ✅ Search functionality with real-time filtering
@@ -183,7 +204,6 @@ To run the application:
 
 - Sample data uses placeholder file paths (import real files to play)
 - No album artwork loading (placeholders only)
-- No queue management (plays single track)
 - No shuffle/repeat modes
 - No playlist editing UI (can create collections)
 
@@ -192,7 +212,7 @@ To run the application:
 See README.md for full list of future enhancements including:
 - Album artwork from metadata/online sources
 - Full playlist editing
-- Queue management and shuffle/repeat
+- Shuffle/repeat modes
 - Keyboard shortcuts
 - Mini player mode
 - iCloud sync
@@ -202,6 +222,12 @@ See README.md for full list of future enhancements including:
 
 This implementation provides a complete, functional music player for macOS with all requested features:
 - ✅ Left sidebar with Artists, Albums, Songs, Collections
+- ✅ Main view with grid and list layouts
+- ✅ Top bar with playback controls, track info, queue button, and search
+- ✅ Right sidebar with queue management and drag-and-drop reordering
+- ✅ Audio playback for common formats
+- ✅ Queue system with auto-advance and navigation
+- ✅ Library management and file import
 - ✅ Main view with grid and list layouts
 - ✅ Top bar with playback controls, track info, and search
 - ✅ Audio playback for common formats
