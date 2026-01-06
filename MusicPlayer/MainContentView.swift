@@ -51,7 +51,7 @@ struct MainContentView: View {
                     .cornerRadius(6)
                     
                     // Import button
-                    Button(action: { Task { await importMusic() } }) {
+                    Button(action: { Task { await importMusicDirectory() } }) {
                         HStack {
                             Image(systemName: "plus")
                             Text("Import")
@@ -64,21 +64,21 @@ struct MainContentView: View {
                 Divider()
                 
                 // Import menu
-                Menu {
-                    Button(action: { Task { await importMusicFiles() } }) {
-                        Label("Import Files...", systemImage: "doc.badge.plus")
-                    }
-                    Button(action: { Task { await importMusicDirectory() } }) {
-                        Label("Import Folder...", systemImage: "folder.badge.plus")
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: "plus")
-                        Text("Import")
-                    }
-                }
-                .menuStyle(.borderlessButton)
-                .buttonStyle(.borderedProminent)
+//                Menu {
+//                    Button(action: { Task { await importMusicFiles() } }) {
+//                        Label("Import Files...", systemImage: "doc.badge.plus")
+//                    }
+//                    Button(action: { Task { await importMusicDirectory() } }) {
+//                        Label("Import Folder...", systemImage: "folder.badge.plus")
+//                    }
+//                } label: {
+//                    HStack {
+//                        Image(systemName: "plus")
+//                        Text("Import")
+//                    }
+//                }
+//                .menuStyle(.borderlessButton)
+//                .buttonStyle(.borderedProminent)
                 // Content
                 ScrollView {
                     if displayMode == .grid {
@@ -246,7 +246,7 @@ struct MainContentView: View {
         UserDefaults.standard.set(value, forKey: key)
     }
     
-    private func importMusic() async {
+    private func importMusicFiles() async {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
