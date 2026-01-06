@@ -60,80 +60,41 @@ class LibraryManager: ObservableObject {
     // MARK: - Init
     init() {
         // Attempt to restore a persisted library location via a security-scoped bookmark
-        if !restoreLibraryFromBookmark() {
-            // Try default ~/Music/MusicPlayer.library
-            if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
-                let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
-                do {
-                    try FileManager.default.createDirectory(at: libraryBundleURL, withIntermediateDirectories: true, attributes: nil)
-                } catch {
-                    print("Cannot access Music directory (sandbox restriction): \(error)")
-                    // Signal that we need user to select a location
-                    DispatchQueue.main.async { [weak self] in
-                        self?.needsLibraryLocationSetup = true
-                    }
-                } catch {
-                    print("LibraryManager: couldn't setup default library: \(error)")
-                    needsLibraryLocationSetup = true
-                    loadSampleData()
+        if restoreLibraryFromBookmark() {
+            // Successfully restored and loaded
+            return
+        }
+
+        // Try default ~/Music/MusicPlayer.library
+        if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
+            let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
+
+            do {
+                // Ensure the bundle directory exists (create if needed)
+                if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
+                    try createLibraryBundle(at: libraryBundleURL)
                 }
-            } else {
-                needsLibraryLocationSetup = true
-                loadSampleData()
+
+                // Start access and load library contents
+                try startAccessingAndLoad(at: libraryBundleURL)
+
+                // Persist a security-scoped bookmark for next launch
+                persistBookmark(for: libraryBundleURL)
+            } catch {
+                print("LibraryManager: couldn't setup default library: \(error)")
+                // Signal that we need user to select a location
+                DispatchQueue.main.async { [weak self] in
+                    self?.needsLibraryLocationSetup = true
+                }
             }
-            
-            // Store this path for future use
-            storeLibraryPath(libraryBundleURL)
-            return libraryBundleURL.appendingPathComponent(libraryFileName)
-        }
-        
-        print("Error: Could not find Music directory")
-        DispatchQueue.main.async { [weak self] in
-            self?.needsLibraryLocationSetup = true
-        }
-        return nil
-    }
-    
-    /// Set the library location (called when user selects a directory)
-    func setLibraryLocation(url: URL) {
-        // Create .library bundle at the selected location
-        let libraryBundleURL = url.appendingPathComponent("MusicPlayer.library", isDirectory: true)
-        
-        do {
-            if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
-                try FileManager.default.createDirectory(at: libraryBundleURL, withIntermediateDirectories: true, attributes: nil)
+        } else {
+            // Couldn't determine Music directory; ask the user to pick a location
+            DispatchQueue.main.async { [weak self] in
+                self?.needsLibraryLocationSetup = true
             }
-            
-            // Store the library bundle path
-            storeLibraryPath(libraryBundleURL)
-            
-            // Clear the setup flag
-            needsLibraryLocationSetup = false
-            
-            // Reload library from new location
-            loadLibrary()
-            
-            print("Library location set to: \(libraryBundleURL.path)")
-        } catch {
-            print("Error setting library location: \(error)")
         }
     }
-    
-    /// Save the library data to disk
-    private func saveLibrary() {
-        // Cancel any pending save operation
-        saveWorkItem?.cancel()
-        
-        // Create a new debounced save operation
-        let workItem = DispatchWorkItem { [weak self] in
-            self?.performSave()
-        }
-        
-        saveWorkItem = workItem
-        
-        // Schedule the save operation after the debounce interval
-        DispatchQueue.main.asyncAfter(deadline: .now() + saveDebounceInterval, execute: workItem)
-    }
+
 
     // MARK: - Public API
     func addTrack(_ track: Track) {
@@ -276,7 +237,6 @@ class LibraryManager: ObservableObject {
         do {
             let bookmarkData = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
             UserDefaults.standard.set(bookmarkData, forKey: bookmarkKey)
-            UserDefaults.standard.synchronize()
         } catch {
             print("LibraryManager: failed to create bookmark: \(error)")
         }
@@ -394,44 +354,6 @@ class LibraryManager: ObservableObject {
         return (duration, metadataItems)
     }
 
-    private func loadSampleData() {
-        // Sample tracks for demonstration UI
-        let sampleTracks = [
-            Track(
-                title: "Sample Song 1",
-                artist: "Sample Artist 1",
-                album: "Sample Album 1",
-                duration: 180,
-                fileURL: URL(fileURLWithPath: "/path/to/sample1.mp3"),
-                genre: "Rock",
-                year: 2023,
-                trackNumber: 1
-            ),
-            Track(
-                title: "Sample Song 2",
-                artist: "Sample Artist 1",
-                album: "Sample Album 1",
-                duration: 200,
-                fileURL: URL(fileURLWithPath: "/path/to/sample2.mp3"),
-                genre: "Rock",
-                year: 2023,
-                trackNumber: 2
-            ),
-            Track(
-                title: "Another Song",
-                artist: "Sample Artist 2",
-                album: "Another Album",
-                duration: 220,
-                fileURL: URL(fileURLWithPath: "/path/to/sample3.mp3"),
-                genre: "Pop",
-                year: 2024,
-                trackNumber: 1
-            )
-        ]
-
-        tracks = sampleTracks
-        collections = [Collection(name: "Favorites", trackIDs: [sampleTracks[0].id, sampleTracks[2].id])]
-    }
 }
 
 // MARK: - Library file structure used on disk
