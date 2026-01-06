@@ -87,7 +87,6 @@ class AudioPlayer: NSObject, ObservableObject {
         timer?.invalidate()
         timer = nil
     }
-}
 
     // MARK: - Queue Management
     
