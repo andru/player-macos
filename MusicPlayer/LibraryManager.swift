@@ -422,7 +422,7 @@ class LibraryManager: ObservableObject {
             }
         }
 
-        return Track(
+        var track = Track(
             title: title,
             artist: artist,
             album: album,
@@ -435,6 +435,11 @@ class LibraryManager: ObservableObject {
             year: year,
             trackNumber: trackNumber
         )
+        
+        // Load artwork from file metadata and cache it
+        await track.loadArtworkFromMetadataIfNeeded()
+        
+        return track
     }
 
     private func loadDurationAndMetadata(for asset: AVAsset) async -> (TimeInterval, [AVMetadataItem]) {
@@ -508,6 +513,13 @@ class LibraryManager: ObservableObject {
         }
 
         return nil
+    }
+    
+    // MARK: - Cleanup
+    deinit {
+//        CoPilot - stop adding these to deinit
+//        stopAccessingSecurityScopedURLIfNeeded()
+//        stopAccessingDirectories()
     }
 
 }
