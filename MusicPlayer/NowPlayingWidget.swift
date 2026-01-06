@@ -52,6 +52,9 @@ struct NowPlayingWidget: View {
                                 .onChanged { value in
                                     handleSeek(at: value.location.x, width: geometry.size.width)
                                 }
+                                .onEnded { value in
+                                    handleSeek(at: value.location.x, width: geometry.size.width)
+                                }
                         )
                     }
                     .frame(width: 200, height: 4)
