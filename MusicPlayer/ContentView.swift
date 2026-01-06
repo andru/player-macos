@@ -7,11 +7,12 @@ struct ContentView: View {
     @State private var selectedView: LibraryView = .albums
     @State private var selectedCollection: Collection? = nil
     @State private var searchText: String = ""
+    @State private var showQueue: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
             // Top bar with playback controls
-            TopBarView(audioPlayer: audioPlayer, searchText: $searchText)
+            TopBarView(audioPlayer: audioPlayer, searchText: $searchText, showQueue: $showQueue)
             
             Divider()
             
@@ -32,6 +33,12 @@ struct ContentView: View {
                     selectedCollection: $selectedCollection,
                     searchText: $searchText
                 )
+                
+                if showQueue {
+                    Divider()
+                    
+                    QueueView(audioPlayer: audioPlayer)
+                }
             }
         }
         .frame(minWidth: 900, minHeight: 600)
