@@ -37,7 +37,7 @@ struct MainContentView: View {
                 .cornerRadius(6)
                 
                 // Import button
-                Button(action: importMusic) {
+                Button(action: { Task { await importMusic() } }) {
                     HStack {
                         Image(systemName: "plus")
                         Text("Import")
@@ -167,14 +167,14 @@ struct MainContentView: View {
         return artists
     }
     
-    private func importMusic() {
+    private func importMusic() async {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         panel.allowedContentTypes = [.audio]
         
         if panel.runModal() == .OK {
-            library.importFiles(urls: panel.urls)
+            await library.importFiles(urls: panel.urls)
         }
     }
 }

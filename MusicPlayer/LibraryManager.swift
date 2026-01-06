@@ -65,33 +65,42 @@ class LibraryManager: ObservableObject {
         collections.removeAll { $0.id == collection.id }
     }
     
-    func importFiles(urls: [URL]) {
+    func importFiles(urls: [URL]) async {
         for url in urls {
-            if let track = createTrack(from: url) {
+            if let track = await createTrack(from: url) {
                 addTrack(track)
             }
         }
     }
     
-    private func createTrack(from url: URL) -> Track? {
+    private  func createTrack(from url: URL) async -> Track? {
         let asset = AVAsset(url: url)
         
         // Extract metadata
         var title = url.deletingPathExtension().lastPathComponent
         var artist = "Unknown Artist"
         var album = "Unknown Album"
-        var duration: TimeInterval = 0
         
-        // Get duration
-        duration = CMTimeGetSeconds(asset.duration)
+        // Load duration and metadata using availability-safe helper
+        let (duration, metadataItems) = await loadDurationAndMetadata(for: asset)
         
-        // Get metadata
-        let metadata = asset.commonMetadata
-        for item in metadata {
-            guard let key = item.commonKey?.rawValue,
-                  let value = item.stringValue else { continue }
+        for item in metadataItems {
+            // Try stringValue first, then fall back to the raw value for better compatibility
+            let key = item.commonKey?.rawValue
+            var valueString: String? = item.stringValue
+            if valueString == nil {
+                if let v = item.value as? String {
+                    valueString = v
+                } else if let v = item.value as? NSNumber {
+                    valueString = v.stringValue
+                } else if let v = item.value {
+                    // Last resort: string-describe the value
+                    valueString = String(describing: v)
+                }
+            }
+            guard let keyUnwrapped = key, let value = valueString else { continue }
             
-            switch key {
+            switch keyUnwrapped {
             case "title":
                 title = value
             case "artist":
@@ -110,6 +119,38 @@ class LibraryManager: ObservableObject {
             duration: duration,
             fileURL: url
         )
+    }
+
+    // Helper to centralize AVAsset property loading and keep deprecated APIs isolated
+    private func loadDurationAndMetadata(for asset: AVAsset) async -> (TimeInterval, [AVMetadataItem]) {
+        var duration: TimeInterval = 0
+        var metadataItems: [AVMetadataItem] = []
+        
+        if #available(macOS 12.0, *) {
+            // Modern async API
+            if let durationTime: CMTime = try? await asset.load(.duration), CMTIME_IS_NUMERIC(durationTime) {
+                duration = CMTimeGetSeconds(durationTime)
+            }
+            metadataItems = (try? await asset.load(.commonMetadata)) ?? []
+        } else {
+            // Legacy fallback: use loadValuesAsynchronously and bridge to async
+            let (loadedDuration, loadedMetadata) = await withCheckedContinuation { (continuation: CheckedContinuation<(TimeInterval, [AVMetadataItem]), Never>) in
+                let keys = ["duration", "commonMetadata"]
+                asset.loadValuesAsynchronously(forKeys: keys) {
+                    var loadedDuration: TimeInterval = 0
+                    let durationValue = asset.duration
+                    if CMTIME_IS_NUMERIC(durationValue) {
+                        loadedDuration = CMTimeGetSeconds(durationValue)
+                    }
+                    let loadedMetadata = asset.commonMetadata
+                    continuation.resume(returning: (loadedDuration, loadedMetadata))
+                }
+            }
+            duration = loadedDuration
+            metadataItems = loadedMetadata
+        }
+        
+        return (duration, metadataItems)
     }
     
     private func loadSampleData() {
