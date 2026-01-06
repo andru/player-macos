@@ -197,86 +197,53 @@ struct AlbumTrackRow: View {
     let onDoubleClick: () -> Void
     
     @State private var isHovered = false
-    @State private var clickCount = 0
-    @State private var clickTimer: Timer?
     
     var body: some View {
-        Button(action: {}) {
-            HStack {
-                Text("\(track.trackNumber ?? 0)")
-                    .frame(width: 40, alignment: .leading)
-                    .foregroundColor(.secondary)
+        HStack {
+            Text("\(track.trackNumber ?? 0)")
+                .frame(width: 40, alignment: .leading)
+                .foregroundColor(.secondary)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(track.title)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(track.title)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    // Show artist if different from album artist
-                    if track.artist != albumArtist {
-                        Text(track.artist)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                // Show artist if different from album artist
+                if track.artist != albumArtist {
+                    Text(track.artist)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                
-                Text(track.formattedDuration)
-                    .frame(width: 80, alignment: .trailing)
-                    .foregroundColor(.secondary)
-                
-                // Heart icon placeholder
-                Image(systemName: "heart")
-                    .frame(width: 40)
-                    .foregroundColor(.secondary)
-                    .opacity(0.5)
             }
-            .padding(.horizontal, 32)
-            .padding(.vertical, 8)
-            .background(isSelected ? Color.accentColor.opacity(0.2) : (isHovered ? Color.accentColor.opacity(0.1) : Color.clear))
-            .contentShape(Rectangle())
+            
+            Text(track.formattedDuration)
+                .frame(width: 80, alignment: .trailing)
+                .foregroundColor(.secondary)
+            
+            // Heart icon placeholder
+            Image(systemName: "heart")
+                .frame(width: 40)
+                .foregroundColor(.secondary)
+                .opacity(0.5)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 32)
+        .padding(.vertical, 8)
+        .background(isSelected ? Color.accentColor.opacity(0.2) : (isHovered ? Color.accentColor.opacity(0.1) : Color.clear))
+        .contentShape(Rectangle())
         .onHover { hovering in
             isHovered = hovering
         }
-        .simultaneousGesture(
-            TapGesture(count: 1)
-                .onEnded { _ in
-                    handleClick()
-                }
-        )
-        .simultaneousGesture(
-            TapGesture(count: 2)
-                .onEnded { _ in
-                    handleDoubleClick()
-                }
-        )
+        .onTapGesture(count: 2) {
+            onDoubleClick()
+        }
+        .onTapGesture(count: 1) {
+            if let event = NSApp.currentEvent {
+                onSingleClick(event.modifierFlags)
+            } else {
+                onSingleClick([])
+            }
+        }
         
         Divider()
-    }
-    
-    private func handleClick() {
-        clickCount += 1
-        
-        // Cancel previous timer
-        clickTimer?.invalidate()
-        
-        // Set timer to distinguish single vs double click
-        clickTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { _ in
-            if clickCount == 1 {
-                // Single click
-                if let event = NSApp.currentEvent {
-                    onSingleClick(event.modifierFlags)
-                } else {
-                    onSingleClick([])
-                }
-            }
-            clickCount = 0
-        }
-    }
-    
-    private func handleDoubleClick() {
-        clickTimer?.invalidate()
-        clickCount = 0
-        onDoubleClick()
     }
 }
