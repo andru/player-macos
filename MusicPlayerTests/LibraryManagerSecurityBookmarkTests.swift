@@ -7,6 +7,9 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
     var libraryManager: LibraryManager!
     var testDirectory: URL!
     
+    // Static constant for the bookmark key to use before libraryManager is initialized
+    private static let directoryBookmarksKey = "MusicPlayerDirectoryBookmarks"
+    
     override func setUp() async throws {
         try await super.setUp()
         
@@ -16,7 +19,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         try FileManager.default.createDirectory(at: testDirectory, withIntermediateDirectories: true)
         
         // Clear any existing bookmarks from UserDefaults
-        UserDefaults.standard.removeObject(forKey: "MusicPlayerDirectoryBookmarks")
+        UserDefaults.standard.removeObject(forKey: Self.directoryBookmarksKey)
         
         libraryManager = LibraryManager()
     }
@@ -28,7 +31,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         }
         
         // Clear bookmarks
-        UserDefaults.standard.removeObject(forKey: "MusicPlayerDirectoryBookmarks")
+        UserDefaults.standard.removeObject(forKey: Self.directoryBookmarksKey)
         
         libraryManager = nil
         testDirectory = nil
@@ -47,7 +50,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         await libraryManager.importDirectory(url: testDirectory)
         
         // Then: A bookmark should be created in UserDefaults
-        let bookmarks = UserDefaults.standard.dictionary(forKey: "MusicPlayerDirectoryBookmarks") as? [String: Data]
+        let bookmarks = UserDefaults.standard.dictionary(forKey: libraryManager.directoryBookmarksKey) as? [String: Data]
         XCTAssertNotNil(bookmarks, "Bookmarks dictionary should be created")
         XCTAssertEqual(bookmarks?.count, 1, "Should have exactly one bookmark")
         XCTAssertNotNil(bookmarks?[testDirectory.path], "Bookmark should exist for test directory path")
@@ -70,7 +73,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         await libraryManager.importDirectory(url: dir2)
         
         // Then: Both bookmarks should be stored
-        let bookmarks = UserDefaults.standard.dictionary(forKey: "MusicPlayerDirectoryBookmarks") as? [String: Data]
+        let bookmarks = UserDefaults.standard.dictionary(forKey: libraryManager.directoryBookmarksKey) as? [String: Data]
         XCTAssertNotNil(bookmarks, "Bookmarks dictionary should be created")
         XCTAssertEqual(bookmarks?.count, 2, "Should have two bookmarks")
         XCTAssertNotNil(bookmarks?[dir1.path], "Bookmark should exist for first directory")
@@ -87,7 +90,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         await libraryManager.importDirectory(url: testDirectory)
         
         // Get the bookmark data
-        guard let bookmarks = UserDefaults.standard.dictionary(forKey: "MusicPlayerDirectoryBookmarks") as? [String: Data],
+        guard let bookmarks = UserDefaults.standard.dictionary(forKey: libraryManager.directoryBookmarksKey) as? [String: Data],
               let bookmarkData = bookmarks[testDirectory.path] else {
             XCTFail("Bookmark should exist")
             return
@@ -122,7 +125,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         )
         
         // Store it in UserDefaults
-        UserDefaults.standard.set([testDirectory.path: bookmarkData], forKey: "MusicPlayerDirectoryBookmarks")
+        UserDefaults.standard.set([testDirectory.path: bookmarkData], forKey: libraryManager.directoryBookmarksKey)
         
         // When: Attempting to resolve (in a real scenario, this might be stale after time/system changes)
         var isStale = false
@@ -149,7 +152,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
             includingResourceValuesForKeys: nil,
             relativeTo: nil
         )
-        UserDefaults.standard.set([testDirectory.path: initialBookmarkData], forKey: "MusicPlayerDirectoryBookmarks")
+        UserDefaults.standard.set([testDirectory.path: initialBookmarkData], forKey: libraryManager.directoryBookmarksKey)
         
         // When: Creating a new bookmark for the same path (simulating refresh)
         let refreshedBookmarkData = try testDirectory.bookmarkData(
@@ -158,12 +161,12 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
             relativeTo: nil
         )
         
-        var bookmarks = UserDefaults.standard.dictionary(forKey: "MusicPlayerDirectoryBookmarks") as? [String: Data] ?? [:]
+        var bookmarks = UserDefaults.standard.dictionary(forKey: libraryManager.directoryBookmarksKey) as? [String: Data] ?? [:]
         bookmarks[testDirectory.path] = refreshedBookmarkData
-        UserDefaults.standard.set(bookmarks, forKey: "MusicPlayerDirectoryBookmarks")
+        UserDefaults.standard.set(bookmarks, forKey: libraryManager.directoryBookmarksKey)
         
         // Then: The bookmark should be updated in UserDefaults
-        let updatedBookmarks = UserDefaults.standard.dictionary(forKey: "MusicPlayerDirectoryBookmarks") as? [String: Data]
+        let updatedBookmarks = UserDefaults.standard.dictionary(forKey: libraryManager.directoryBookmarksKey) as? [String: Data]
         XCTAssertNotNil(updatedBookmarks?[testDirectory.path], "Bookmark should still exist")
         XCTAssertEqual(updatedBookmarks?.count, 1, "Should still have exactly one bookmark")
     }
@@ -193,7 +196,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         // Then: All music files should be found and imported (3 files, ignoring readme.txt)
         // Note: This test verifies the scanning works, but actual track creation may fail
         // without valid audio metadata. The important part is that the bookmark is created.
-        let bookmarks = UserDefaults.standard.dictionary(forKey: "MusicPlayerDirectoryBookmarks") as? [String: Data]
+        let bookmarks = UserDefaults.standard.dictionary(forKey: libraryManager.directoryBookmarksKey) as? [String: Data]
         XCTAssertNotNil(bookmarks?[testDirectory.path], "Bookmark should be created after scanning")
     }
     
@@ -208,7 +211,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         await libraryManager.importDirectory(url: testDirectory)
         
         // Then: The import should complete without errors and bookmark should exist
-        let bookmarks = UserDefaults.standard.dictionary(forKey: "MusicPlayerDirectoryBookmarks") as? [String: Data]
+        let bookmarks = UserDefaults.standard.dictionary(forKey: libraryManager.directoryBookmarksKey) as? [String: Data]
         XCTAssertNotNil(bookmarks?[testDirectory.path], "Bookmark should exist after import with security scope access")
     }
     
@@ -219,7 +222,7 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         
         await libraryManager.importDirectory(url: testDirectory)
         
-        guard let bookmarks = UserDefaults.standard.dictionary(forKey: "MusicPlayerDirectoryBookmarks") as? [String: Data],
+        guard let bookmarks = UserDefaults.standard.dictionary(forKey: libraryManager.directoryBookmarksKey) as? [String: Data],
               let bookmarkData = bookmarks[testDirectory.path] else {
             XCTFail("Bookmark should exist")
             return

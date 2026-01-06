@@ -14,7 +14,7 @@ class LibraryManager: ObservableObject {
     // Internal
     private let libraryFileName = "library.json"
     private let bookmarkKey = "MusicPlayerLibraryBookmark"
-    private let directoryBookmarksKey = "MusicPlayerDirectoryBookmarks"
+    internal let directoryBookmarksKey = "MusicPlayerDirectoryBookmarks"
     private var isSecurityScoped = false
     private var securityScopedURL: URL? = nil
     private var accessedDirectories: [URL] = []
@@ -95,6 +95,12 @@ class LibraryManager: ObservableObject {
                 self?.needsLibraryLocationSetup = true
             }
         }
+    }
+    
+    deinit {
+        // Clean up security-scoped resources
+        stopAccessingSecurityScopedURLIfNeeded()
+        stopAccessingDirectories()
     }
 
 
