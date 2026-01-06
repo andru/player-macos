@@ -284,7 +284,8 @@ class LibraryManager: ObservableObject {
                     print("LibraryManager: directory bookmark is stale, refreshing: \(url.path)")
                     // Refresh the stale bookmark by creating a new one
                     let newBookmarkData = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
-                    var updatedBookmarks = bookmarks
+                    // Get fresh bookmarks from UserDefaults to avoid losing concurrent updates
+                    var updatedBookmarks = UserDefaults.standard.dictionary(forKey: directoryBookmarksKey) as? [String: Data] ?? [:]
                     updatedBookmarks[path] = newBookmarkData
                     UserDefaults.standard.set(updatedBookmarks, forKey: directoryBookmarksKey)
                 }
