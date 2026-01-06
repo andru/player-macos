@@ -18,6 +18,9 @@ class LibraryManager: ObservableObject {
     private var isSecurityScoped = false
     private var securityScopedURL: URL? = nil
     private var accessedDirectories: [URL] = []
+    
+    // Supported audio file extensions
+    private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
 
     // MARK: - Derived views
     var albums: [Album] {
@@ -61,6 +64,9 @@ class LibraryManager: ObservableObject {
 
     // MARK: - Init
     init() {
+        // Restore directory bookmarks for previously imported directories
+        restoreDirectoryBookmarks()
+        
         // Attempt to restore a persisted library location via a security-scoped bookmark
         if restoreLibraryFromBookmark() {
             // Successfully restored and loaded
@@ -323,17 +329,16 @@ class LibraryManager: ObservableObject {
     }
     
     func importDirectory(url: URL) async {
-        // Restore any existing directory bookmarks first
-        restoreDirectoryBookmarks()
-        
-        // Start accessing the selected directory
-        _ = url.startAccessingSecurityScopedResource()
-        defer {
-            url.stopAccessingSecurityScopedResource()
-        }
-        
-        // Persist bookmark for this directory
+        // Persist bookmark for this directory to maintain access across app launches
         persistDirectoryBookmark(for: url)
+        
+        // Start accessing the selected directory and keep it accessed
+        if url.startAccessingSecurityScopedResource() {
+            // Add to accessed directories for resource management (cleaned up in deinit)
+            if !accessedDirectories.contains(url) {
+                accessedDirectories.append(url)
+            }
+        }
         
         // Recursively find all music files
         let musicFiles = findMusicFiles(in: url)
@@ -345,17 +350,11 @@ class LibraryManager: ObservableObject {
             }
         }
         saveLibrary()
-        
-        // Stop accessing previously restored directories
-        stopAccessingDirectories()
     }
     
     private func findMusicFiles(in directory: URL) -> [URL] {
         var musicFiles: [URL] = []
         let fileManager = FileManager.default
-        
-        // Supported audio file extensions
-        let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
         
         guard let enumerator = fileManager.enumerator(
             at: directory,
