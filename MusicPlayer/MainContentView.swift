@@ -188,14 +188,24 @@ struct AlbumGridItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: action) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.3))
-                    .aspectRatio(1, contentMode: .fit)
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                    )
+                if let artwork = album.artwork {
+                    Image(nsImage: artwork)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(minWidth: 160, maxWidth: 200)
+                        .aspectRatio(1, contentMode: .fit)
+                        .cornerRadius(8)
+                        .clipped()
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.3))
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay(
+                            Image(systemName: "music.note")
+                                .font(.largeTitle)
+                                .foregroundColor(.secondary)
+                        )
+                }
             }
             .buttonStyle(.plain)
             
@@ -252,14 +262,24 @@ struct TrackGridItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: action) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.3))
-                    .aspectRatio(1, contentMode: .fit)
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                    )
+                if let artwork = track.artwork {
+                    Image(nsImage: artwork)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(minWidth: 160, maxWidth: 200)
+                        .aspectRatio(1, contentMode: .fit)
+                        .cornerRadius(8)
+                        .clipped()
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.3))
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay(
+                            Image(systemName: "music.note")
+                                .font(.largeTitle)
+                                .foregroundColor(.secondary)
+                        )
+                }
             }
             .buttonStyle(.plain)
             

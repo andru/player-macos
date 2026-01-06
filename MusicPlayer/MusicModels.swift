@@ -10,11 +10,12 @@ struct Track: Identifiable, Codable, Hashable {
     var duration: TimeInterval
     var fileURL: URL
     var artworkURL: URL?
+    var artworkData: Data?
     var genre: String?
     var year: Int?
     var trackNumber: Int?
     
-    init(id: UUID = UUID(), title: String, artist: String, album: String, duration: TimeInterval, fileURL: URL, artworkURL: URL? = nil, genre: String? = nil, year: Int? = nil, trackNumber: Int? = nil) {
+    init(id: UUID = UUID(), title: String, artist: String, album: String, duration: TimeInterval, fileURL: URL, artworkURL: URL? = nil, artworkData: Data? = nil, genre: String? = nil, year: Int? = nil, trackNumber: Int? = nil) {
         self.id = id
         self.title = title
         self.artist = artist
@@ -22,6 +23,7 @@ struct Track: Identifiable, Codable, Hashable {
         self.duration = duration
         self.fileURL = fileURL
         self.artworkURL = artworkURL
+        self.artworkData = artworkData
         self.genre = genre
         self.year = year
         self.trackNumber = trackNumber
@@ -32,6 +34,11 @@ struct Track: Identifiable, Codable, Hashable {
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
+    
+    var artwork: NSImage? {
+        guard let artworkData = artworkData else { return nil }
+        return NSImage(data: artworkData)
+    }
 }
 
 // MARK: - Album Model
@@ -40,16 +47,30 @@ struct Album: Identifiable, Hashable {
     var name: String
     var artist: String
     var artworkURL: URL?
+    var artworkData: Data?
     var tracks: [Track]
     var year: Int?
     
-    init(id: UUID = UUID(), name: String, artist: String, artworkURL: URL? = nil, tracks: [Track] = [], year: Int? = nil) {
+    init(id: UUID = UUID(), name: String, artist: String, artworkURL: URL? = nil, artworkData: Data? = nil, tracks: [Track] = [], year: Int? = nil) {
         self.id = id
         self.name = name
         self.artist = artist
         self.artworkURL = artworkURL
+        self.artworkData = artworkData
         self.tracks = tracks
         self.year = year
+    }
+    
+    var artwork: NSImage? {
+        // Prefer artworkData if available
+        if let artworkData = artworkData {
+            return NSImage(data: artworkData)
+        }
+        // Fall back to first track's artwork
+        if let firstTrackArtwork = tracks.first?.artwork {
+            return firstTrackArtwork
+        }
+        return nil
     }
 }
 
