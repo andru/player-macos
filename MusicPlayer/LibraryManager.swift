@@ -99,8 +99,7 @@ class LibraryManager: ObservableObject {
         saveWorkItem?.cancel()
         
         // Create a new debounced save operation
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
+        let workItem = DispatchWorkItem { [unowned self] in
             self.performSave()
         }
         
