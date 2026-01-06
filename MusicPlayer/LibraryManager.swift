@@ -439,31 +439,33 @@ class LibraryManager: ObservableObject {
 
     private func loadDurationAndMetadata(for asset: AVAsset) async -> (TimeInterval, [AVMetadataItem]) {
         var duration: TimeInterval = 0
-        var metadataItems: [AVMetadataItem] = []
+        var items: [AVMetadataItem] = []
 
-        if #available(macOS 12.0, *) {
-            if let durationTime: CMTime = try? await asset.load(.duration), CMTIME_IS_NUMERIC(durationTime) {
-                duration = CMTimeGetSeconds(durationTime)
-            }
-            metadataItems = (try? await asset.load(.commonMetadata)) ?? []
-        } else {
-            let (loadedDuration, loadedMetadata) = await withCheckedContinuation { (continuation: CheckedContinuation<(TimeInterval, [AVMetadataItem]), Never>) in
-                let keys = ["duration", "commonMetadata"]
-                asset.loadValuesAsynchronously(forKeys: keys) {
-                    var loadedDuration: TimeInterval = 0
-                    let durationValue = asset.duration
-                    if CMTIME_IS_NUMERIC(durationValue) {
-                        loadedDuration = CMTimeGetSeconds(durationValue)
-                    }
-                    let loadedMetadata = asset.commonMetadata
-                    continuation.resume(returning: (loadedDuration, loadedMetadata))
-                }
-            }
-            duration = loadedDuration
-            metadataItems = loadedMetadata
+        
+        // Load duration
+       if let cmTime: CMTime = try? await asset.load(.duration) {
+           let seconds = CMTimeGetSeconds(cmTime)
+           if seconds.isFinite { duration = seconds }
+       }
+        
+        // Load common metadata
+        if let common: [AVMetadataItem] = try? await asset.load(.commonMetadata) {
+            items.append(contentsOf: common)
         }
 
-        return (duration, metadataItems)
+        // Load format-specific metadata by enumerating available formats
+        if let formats: [AVMetadataFormat] = try? await asset.load(.availableMetadataFormats) {
+            for format in formats {
+                // `metadata(forFormat:)` is safe to call after we've loaded the formats
+                let fmtItems = try? await asset.loadMetadata(for: format)
+                if (fmtItems != nil) {
+                    items.append(contentsOf: fmtItems!)
+                }
+            }
+        }
+
+
+        return (duration, items)
     }
     
     func extractAlbumArtist(from metadataItems: [AVMetadataItem]) async -> String? {
