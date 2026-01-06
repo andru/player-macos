@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundlePackageType</key>
+    <string>BNDL</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.musicplayer.library</string>
+    <key>CFBundleName</key>
+    <string>MusicPlayer Library</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleIconFile</key>
+    <string>LibraryIcon.pdf</string>
+    <key>VibezLibraryFormatVersion</key>
+    <integer>1</integer>
+    <!--
+        Notes:
+        - This Info.plist is used as the minimal Contents/Info.plist inside a created `.library` bundle.
+        - The app should create a directory named `YourName.library` and copy these Contents/Resources files inside.
+        - For Finder to present the directory as a package, you should also declare a UTI in the app's Info.plist
+          where the UTI (e.g. `com.vibez.musiclibrary`) conformsTo `com.apple.package` and associates the
+          filename extension `library` with that UTI (see IMPLEMENTATION.md/README for details).
+    -->
+</dict>
+</plist>

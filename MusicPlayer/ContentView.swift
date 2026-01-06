@@ -35,39 +35,8 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 600)
-        .alert("Choose Library Location", isPresented: $library.needsLibraryLocationSetup) {
-            Button("Choose Location") {
-                showLibraryLocationPicker()
-            }
-            Button("Cancel", role: .cancel) {
-                library.needsLibraryLocationSetup = false
-            }
-        } message: {
-            Text("The app needs permission to store your music library. Please select a folder where the library will be saved (e.g., Documents or Desktop).")
-        }
-    }
-    
-    private func showLibraryLocationPicker() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.canCreateDirectories = true
-        panel.message = "Choose a location for your Music Library"
-        panel.prompt = "Choose"
-        
-        panel.begin { [weak self] response in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                if response == .OK, let url = panel.url {
-                    // User selected a location
-                    self.library.setLibraryLocation(url: url)
-                } else {
-                    // User cancelled - keep showing sample data
-                    self.library.needsLibraryLocationSetup = false
-                }
-            }
-        }
+        // The LibraryLocationPicker component presents the alert and open panel when needed
+        LibraryLocationPicker(library: library)
     }
 }
 
