@@ -76,8 +76,8 @@ class LibraryManager: ObservableObject {
     /// Get the URL for the library file in .library bundle
     private func getLibraryFileURL() -> URL? {
         // Check if user has previously selected a library location
-        if let storedPath = UserDefaults.standard.string(forKey: libraryPathKey),
-           let storedURL = URL(string: storedPath) {
+        if let storedPath = UserDefaults.standard.string(forKey: libraryPathKey) {
+            let storedURL = URL(fileURLWithPath: storedPath)
             return storedURL.appendingPathComponent(libraryFileName)
         }
         
@@ -100,7 +100,7 @@ class LibraryManager: ObservableObject {
             }
             
             // Store this path for future use
-            UserDefaults.standard.set(libraryBundleURL.absoluteString, forKey: libraryPathKey)
+            UserDefaults.standard.set(libraryBundleURL.path, forKey: libraryPathKey)
             return libraryBundleURL.appendingPathComponent(libraryFileName)
         }
         
@@ -122,7 +122,7 @@ class LibraryManager: ObservableObject {
             }
             
             // Store the library bundle path
-            UserDefaults.standard.set(libraryBundleURL.absoluteString, forKey: libraryPathKey)
+            UserDefaults.standard.set(libraryBundleURL.path, forKey: libraryPathKey)
             
             // Clear the setup flag
             needsLibraryLocationSetup = false

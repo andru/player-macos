@@ -7,7 +7,6 @@ struct ContentView: View {
     @State private var selectedView: LibraryView = .albums
     @State private var selectedCollection: Collection? = nil
     @State private var searchText: String = ""
-    @State private var showingLibraryLocationPicker = false
     
     var body: some View {
         VStack(spacing: 0) {
