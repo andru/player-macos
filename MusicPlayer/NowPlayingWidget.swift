@@ -30,22 +30,30 @@ struct NowPlayingWidget: View {
                 
                 // Time display and seekable scrubber
                 VStack(spacing: 4) {
-                    // Custom seekable slider
+                    // Custom seekable slider with expanded click zone
                     GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            // Background track
+                        ZStack(alignment: .center) {
+                            // Expanded clickable area (invisible)
                             Rectangle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(height: 4)
-                                .cornerRadius(2)
+                                .fill(Color.clear)
+                                .frame(height: 20)
                             
-                            // Progress fill
-                            Rectangle()
-                                .fill(Color.accentColor)
-                                .frame(width: progressWidth(for: geometry.size.width), height: 4)
-                                .cornerRadius(2)
+                            // Visual progress bar
+                            ZStack(alignment: .leading) {
+                                // Background track
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 4)
+                                    .cornerRadius(2)
+                                
+                                // Progress fill
+                                Rectangle()
+                                    .fill(Color.accentColor)
+                                    .frame(width: progressWidth(for: geometry.size.width), height: 4)
+                                    .cornerRadius(2)
+                            }
+                            .frame(height: 4)
                         }
-                        .frame(height: 4)
                         .contentShape(Rectangle())
                         .gesture(
                             DragGesture(minimumDistance: 0)
@@ -57,7 +65,7 @@ struct NowPlayingWidget: View {
                                 }
                         )
                     }
-                    .frame(width: 200, height: 4)
+                    .frame(width: 200, height: 20)
                     
                     HStack {
                         Text(formatTime(audioPlayer.currentTime))
