@@ -8,6 +8,11 @@ struct MainContentView: View {
     @Binding var searchText: String
     @State private var displayMode: DisplayMode = .grid
     
+    // UserDefaults keys for view mode preferences
+    private let artistsViewModeKey = "artistsViewMode"
+    private let albumsViewModeKey = "albumsViewMode"
+    private let songsViewModeKey = "songsViewMode"
+    
     var body: some View {
         VStack(spacing: 0) {
             // Toolbar
@@ -20,13 +25,19 @@ struct MainContentView: View {
                 
                 // View mode toggle
                 HStack(spacing: 4) {
-                    Button(action: { displayMode = .grid }) {
+                    Button(action: { 
+                        displayMode = .grid
+                        saveViewMode()
+                    }) {
                         Image(systemName: "square.grid.2x2")
                             .foregroundColor(displayMode == .grid ? .primary : .secondary)
                     }
                     .buttonStyle(.plain)
                     
-                    Button(action: { displayMode = .list }) {
+                    Button(action: { 
+                        displayMode = .list
+                        saveViewMode()
+                    }) {
                         Image(systemName: "list.bullet")
                             .foregroundColor(displayMode == .list ? .primary : .secondary)
                     }
@@ -57,6 +68,12 @@ struct MainContentView: View {
                     listView
                 }
             }
+        }
+        .onAppear {
+            loadViewMode()
+        }
+        .onChange(of: selectedView) { _ in
+            loadViewMode()
         }
     }
     
@@ -165,6 +182,46 @@ struct MainContentView: View {
         }
         
         return artists
+    }
+    
+    private func loadViewMode() {
+        let key: String
+        let defaultMode: DisplayMode
+        
+        switch selectedView {
+        case .artists:
+            key = artistsViewModeKey
+            defaultMode = .grid  // Default: thumbnail
+        case .albums:
+            key = albumsViewModeKey
+            defaultMode = .grid  // Default: thumbnail
+        case .songs:
+            key = songsViewModeKey
+            defaultMode = .list  // Default: list
+        }
+        
+        let savedValue = UserDefaults.standard.string(forKey: key)
+        if let savedValue = savedValue {
+            displayMode = savedValue == "grid" ? .grid : .list
+        } else {
+            displayMode = defaultMode
+        }
+    }
+    
+    private func saveViewMode() {
+        let key: String
+        
+        switch selectedView {
+        case .artists:
+            key = artistsViewModeKey
+        case .albums:
+            key = albumsViewModeKey
+        case .songs:
+            key = songsViewModeKey
+        }
+        
+        let value = displayMode == .grid ? "grid" : "list"
+        UserDefaults.standard.set(value, forKey: key)
     }
     
     private func importMusic() async {
