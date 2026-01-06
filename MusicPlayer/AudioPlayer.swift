@@ -87,5 +87,9 @@ extension AudioPlayer: AVAudioPlayerDelegate {
         isPlaying = false
         currentTime = 0
         stopTimer()
+        
+        if !flag {
+            print("Audio playback did not complete successfully")
+        }
     }
 }

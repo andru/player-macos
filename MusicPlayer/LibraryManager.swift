@@ -113,14 +113,15 @@ class LibraryManager: ObservableObject {
     }
     
     private func loadSampleData() {
-        // Sample tracks for demonstration
+        // Sample tracks for demonstration UI
+        // Note: These use placeholder file paths. Import real music files to play audio.
         let sampleTracks = [
             Track(
                 title: "Sample Song 1",
                 artist: "Sample Artist 1",
                 album: "Sample Album 1",
                 duration: 180,
-                fileURL: URL(fileURLWithPath: "/tmp/sample1.mp3"),
+                fileURL: URL(fileURLWithPath: "/path/to/sample1.mp3"),
                 genre: "Rock",
                 year: 2023,
                 trackNumber: 1
@@ -130,7 +131,7 @@ class LibraryManager: ObservableObject {
                 artist: "Sample Artist 1",
                 album: "Sample Album 1",
                 duration: 200,
-                fileURL: URL(fileURLWithPath: "/tmp/sample2.mp3"),
+                fileURL: URL(fileURLWithPath: "/path/to/sample2.mp3"),
                 genre: "Rock",
                 year: 2023,
                 trackNumber: 2
@@ -140,7 +141,7 @@ class LibraryManager: ObservableObject {
                 artist: "Sample Artist 2",
                 album: "Another Album",
                 duration: 220,
-                fileURL: URL(fileURLWithPath: "/tmp/sample3.mp3"),
+                fileURL: URL(fileURLWithPath: "/path/to/sample3.mp3"),
                 genre: "Pop",
                 year: 2024,
                 trackNumber: 1
