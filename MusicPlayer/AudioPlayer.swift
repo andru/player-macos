@@ -107,6 +107,23 @@ class AudioPlayer: NSObject, ObservableObject {
         queue.append(QueueItem(track: track, hasBeenPlayed: false))
     }
     
+    func addToQueueNext(_ track: Track) {
+        let insertIndex = currentQueueIndex + 1
+        queue.insert(QueueItem(track: track, hasBeenPlayed: false), at: insertIndex)
+    }
+    
+    func addToQueueEnd(_ track: Track) {
+        queue.append(QueueItem(track: track, hasBeenPlayed: false))
+    }
+    
+    func playNow(_ track: Track) {
+        // Add track to queue after current position and play it immediately
+        let insertIndex = currentQueueIndex + 1
+        queue.insert(QueueItem(track: track, hasBeenPlayed: false), at: insertIndex)
+        currentQueueIndex = insertIndex
+        play(track: track)
+    }
+    
     func clearQueue() {
         queue.removeAll()
         currentQueueIndex = -1
