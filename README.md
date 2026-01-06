@@ -38,7 +38,7 @@ A native macOS music player and library manager built with Swift and SwiftUI.
   - Organize music by Artists, Albums, and Songs
   - Create custom collections (playlists)
   - Search across all tracks, artists, and albums
-  - Persistent library storage in Application Support directory
+  - Persistent library storage in .library bundle (~/Music/MusicPlayer.library)
   - Library data survives app reinstalls and updates
 
 - **Views:**

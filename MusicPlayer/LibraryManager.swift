@@ -70,27 +70,27 @@ class LibraryManager: ObservableObject {
     
     // MARK: - Persistence
     
-    /// Get the URL for the library file in Application Support directory
+    /// Get the URL for the library file in .library bundle
     private func getLibraryFileURL() -> URL? {
-        guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            print("Error: Could not find Application Support directory")
+        guard let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first else {
+            print("Error: Could not find Music directory")
             return nil
         }
         
-        // Create app-specific directory
-        let appDirectory = appSupportURL.appendingPathComponent("MusicPlayer", isDirectory: true)
+        // Create .library bundle in Music directory (standard pattern for music apps on macOS)
+        let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
         
-        // Create directory if it doesn't exist
-        if !FileManager.default.fileExists(atPath: appDirectory.path) {
+        // Create library bundle if it doesn't exist
+        if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
             do {
-                try FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true, attributes: nil)
+                try FileManager.default.createDirectory(at: libraryBundleURL, withIntermediateDirectories: true, attributes: nil)
             } catch {
-                print("Error creating app directory: \(error)")
+                print("Error creating library bundle: \(error)")
                 return nil
             }
         }
         
-        return appDirectory.appendingPathComponent(libraryFileName)
+        return libraryBundleURL.appendingPathComponent(libraryFileName)
     }
     
     /// Save the library data to disk

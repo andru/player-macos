@@ -68,7 +68,7 @@ MusicPlayer/
 - Dynamic album/artist aggregation from tracks
 - File import with metadata extraction
 - Collection management (create, add, remove)
-- Automatic persistence to Application Support directory
+- Automatic persistence to .library bundle in Music directory
 - JSON-based storage for tracks and collections
 - Sample data for demonstration (when no saved library exists)
 
