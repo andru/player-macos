@@ -517,8 +517,9 @@ class LibraryManager: ObservableObject {
     
     // MARK: - Cleanup
     deinit {
-        stopAccessingSecurityScopedURLIfNeeded()
-        stopAccessingDirectories()
+//        CoPilot - stop adding these to deinit
+//        stopAccessingSecurityScopedURLIfNeeded()
+//        stopAccessingDirectories()
     }
 
 }
