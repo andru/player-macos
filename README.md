@@ -98,18 +98,34 @@ The app will launch with sample data to demonstrate the interface.
 ```
 MusicPlayer/
 ├── MusicPlayer.xcodeproj/      # Xcode project file
-└── MusicPlayer/
-    ├── MusicPlayerApp.swift    # App entry point
-    ├── ContentView.swift       # Main view coordinator
-    ├── SidebarView.swift       # Left sidebar navigation
-    ├── TopBarView.swift        # Playback controls and search
-    ├── MainContentView.swift   # Main content area with grid/list
-    ├── MusicModels.swift       # Data models (Track, Album, Artist, Collection)
-    ├── AudioPlayer.swift       # Audio playback engine
-    ├── LibraryManager.swift    # Library management and data
-    ├── Assets.xcassets/        # App assets and icons
-    └── MusicPlayer.entitlements # App permissions
+├── MusicPlayer/
+│   ├── MusicPlayerApp.swift    # App entry point
+│   ├── ContentView.swift       # Main view coordinator
+│   ├── SidebarView.swift       # Left sidebar navigation
+│   ├── TopBarView.swift        # Playback controls and search
+│   ├── MainContentView.swift   # Main content area with grid/list
+│   ├── MusicModels.swift       # Data models (Track, Album, Artist, Collection)
+│   ├── AudioPlayer.swift       # Audio playback engine
+│   ├── LibraryManager.swift    # Library management and data
+│   ├── Assets.xcassets/        # App assets and icons
+│   └── MusicPlayer.entitlements # App permissions
+└── MusicPlayerTests/
+    ├── ViewModePreferencesTests.swift  # Tests for view mode persistence
+    └── README.md               # Test documentation
 ```
+
+## Testing
+
+The project includes unit tests to verify core functionality:
+
+```bash
+# Run tests using xcodebuild
+xcodebuild test -project MusicPlayer.xcodeproj -scheme MusicPlayerTests
+
+# Or run tests in Xcode with Cmd+U
+```
+
+See `MusicPlayerTests/README.md` for more details on the test suite.
 
 ## Architecture
 

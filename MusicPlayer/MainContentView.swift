@@ -72,7 +72,7 @@ struct MainContentView: View {
         .onAppear {
             loadViewMode()
         }
-        .onChange(of: selectedView) { _ in
+        .onChange(of: selectedView) {
             loadViewMode()
         }
     }
