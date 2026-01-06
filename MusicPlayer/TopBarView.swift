@@ -1,4 +1,22 @@
 import SwiftUI
+import AppKit
+
+// MARK: - Window Drag Area Helper
+struct WindowDragArea: NSViewRepresentable {
+    func makeNSView(context: Context) -> DraggableView {
+        return DraggableView()
+    }
+    
+    func updateNSView(_ nsView: DraggableView, context: Context) {
+        // No updates needed
+    }
+    
+    class DraggableView: NSView {
+        override func mouseDown(with event: NSEvent) {
+            window?.performDrag(with: event)
+        }
+    }
+}
 
 struct TopBarView: View {
     @ObservedObject var audioPlayer: AudioPlayer
@@ -104,7 +122,10 @@ struct TopBarView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(
+            Color(nsColor: .windowBackgroundColor)
+                .overlay(WindowDragArea())
+        )
     }
     
     private func togglePlayPause() {
