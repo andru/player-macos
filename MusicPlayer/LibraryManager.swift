@@ -104,8 +104,8 @@ class LibraryManager: ObservableObject {
                 } catch {
                     print("Cannot access Music directory (sandbox restriction): \(error)")
                     // Signal that we need user to select a location
-                    DispatchQueue.main.async {
-                        self.needsLibraryLocationSetup = true
+                    DispatchQueue.main.async { [weak self] in
+                        self?.needsLibraryLocationSetup = true
                     }
                     return nil
                 }
@@ -117,8 +117,8 @@ class LibraryManager: ObservableObject {
         }
         
         print("Error: Could not find Music directory")
-        DispatchQueue.main.async {
-            self.needsLibraryLocationSetup = true
+        DispatchQueue.main.async { [weak self] in
+            self?.needsLibraryLocationSetup = true
         }
         return nil
     }
