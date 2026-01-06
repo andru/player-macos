@@ -14,8 +14,10 @@ class LibraryManager: ObservableObject {
     // Internal
     private let libraryFileName = "library.json"
     private let bookmarkKey = "MusicPlayerLibraryBookmark"
+    private let directoryBookmarksKey = "MusicPlayerDirectoryBookmarks"
     private var isSecurityScoped = false
     private var securityScopedURL: URL? = nil
+    private var accessedDirectories: [URL] = []
 
     // MARK: - Derived views
     var albums: [Album] {
@@ -259,6 +261,47 @@ class LibraryManager: ObservableObject {
         }
     }
 
+    // MARK: - Directory bookmarks
+    private func persistDirectoryBookmark(for url: URL) {
+        do {
+            let bookmarkData = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+            var bookmarks = UserDefaults.standard.dictionary(forKey: directoryBookmarksKey) as? [String: Data] ?? [:]
+            bookmarks[url.path] = bookmarkData
+            UserDefaults.standard.set(bookmarks, forKey: directoryBookmarksKey)
+        } catch {
+            print("LibraryManager: failed to create directory bookmark: \(error)")
+        }
+    }
+    
+    private func restoreDirectoryBookmarks() {
+        guard let bookmarks = UserDefaults.standard.dictionary(forKey: directoryBookmarksKey) as? [String: Data] else { return }
+        
+        for (_, bookmarkData) in bookmarks {
+            var isStale = false
+            do {
+                let url = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &isStale)
+                if isStale {
+                    print("LibraryManager: directory bookmark is stale, refreshing: \(url.path)")
+                    // Refresh the stale bookmark
+                    persistDirectoryBookmark(for: url)
+                }
+                
+                if url.startAccessingSecurityScopedResource() {
+                    accessedDirectories.append(url)
+                }
+            } catch {
+                print("LibraryManager: failed to resolve directory bookmark: \(error)")
+            }
+        }
+    }
+    
+    private func stopAccessingDirectories() {
+        for url in accessedDirectories {
+            url.stopAccessingSecurityScopedResource()
+        }
+        accessedDirectories.removeAll()
+    }
+
     // MARK: - Track creation and metadata helpers
     func importFiles(urls: [URL]) async {
         for url in urls {
@@ -267,6 +310,68 @@ class LibraryManager: ObservableObject {
             }
         }
         saveLibrary()
+    }
+    
+    func importDirectory(url: URL) async {
+        // Restore any existing directory bookmarks first
+        restoreDirectoryBookmarks()
+        
+        // Start accessing the selected directory
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        
+        // Persist bookmark for this directory
+        persistDirectoryBookmark(for: url)
+        
+        // Recursively find all music files
+        let musicFiles = findMusicFiles(in: url)
+        
+        // Import all found files
+        for fileURL in musicFiles {
+            if let track = await createTrack(from: fileURL) {
+                tracks.append(track)
+            }
+        }
+        saveLibrary()
+        
+        // Stop accessing previously restored directories
+        stopAccessingDirectories()
+    }
+    
+    private func findMusicFiles(in directory: URL) -> [URL] {
+        var musicFiles: [URL] = []
+        let fileManager = FileManager.default
+        
+        // Supported audio file extensions
+        let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
+        
+        guard let enumerator = fileManager.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return musicFiles
+        }
+        
+        for case let fileURL as URL in enumerator {
+            do {
+                let resourceValues = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
+                if let isRegularFile = resourceValues.isRegularFile, isRegularFile {
+                    let fileExtension = fileURL.pathExtension.lowercased()
+                    if audioExtensions.contains(fileExtension) {
+                        musicFiles.append(fileURL)
+                    }
+                }
+            } catch {
+                print("LibraryManager: error checking file: \(error)")
+            }
+        }
+        
+        return musicFiles
     }
 
     private func createTrack(from url: URL) async -> Track? {

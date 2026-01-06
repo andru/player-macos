@@ -36,13 +36,21 @@ struct MainContentView: View {
                 .background(Color(nsColor: .controlBackgroundColor))
                 .cornerRadius(6)
                 
-                // Import button
-                Button(action: { Task { await importMusic() } }) {
+                // Import menu
+                Menu {
+                    Button(action: { Task { await importMusicFiles() } }) {
+                        Label("Import Files...", systemImage: "doc.badge.plus")
+                    }
+                    Button(action: { Task { await importMusicDirectory() } }) {
+                        Label("Import Folder...", systemImage: "folder.badge.plus")
+                    }
+                } label: {
                     HStack {
                         Image(systemName: "plus")
                         Text("Import")
                     }
                 }
+                .menuStyle(.borderlessButton)
                 .buttonStyle(.borderedProminent)
             }
             .padding()
@@ -167,7 +175,7 @@ struct MainContentView: View {
         return artists
     }
     
-    private func importMusic() async {
+    private func importMusicFiles() async {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -175,6 +183,20 @@ struct MainContentView: View {
         
         if panel.runModal() == .OK {
             await library.importFiles(urls: panel.urls)
+        }
+    }
+    
+    private func importMusicDirectory() async {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = false
+        panel.message = "Choose a folder to import music from"
+        panel.prompt = "Import"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            await library.importDirectory(url: url)
         }
     }
 }
