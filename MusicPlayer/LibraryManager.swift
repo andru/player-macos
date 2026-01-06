@@ -102,12 +102,6 @@ class LibraryManager: ObservableObject {
             }
         }
     }
-    
-    deinit {
-        // Clean up security-scoped resources
-        stopAccessingSecurityScopedURLIfNeeded()
-        stopAccessingDirectories()
-    }
 
 
     // MARK: - Public API
