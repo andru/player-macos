@@ -1,7 +1,7 @@
 import Foundation
 import AVFoundation
 
-class AudioPlayer: ObservableObject {
+class AudioPlayer: NSObject, ObservableObject {
     @Published var currentTrack: Track?
     @Published var isPlaying: Bool = false
     @Published var currentTime: TimeInterval = 0
