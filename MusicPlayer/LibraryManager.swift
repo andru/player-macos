@@ -91,11 +91,14 @@ class LibraryManager: ObservableObject {
             
             // Handle artwork separately
             if key == "artwork" {
+                // Try to extract artwork data from various possible formats
                 if let data = item.value as? Data {
                     artworkData = data
                 } else if let dict = item.value as? [AnyHashable: Any],
                           let imageData = dict["data"] as? Data {
                     artworkData = imageData
+                } else if let nsData = item.dataValue {
+                    artworkData = nsData as Data
                 }
                 continue
             }
