@@ -7,13 +7,22 @@ struct NowPlayingWidget: View {
         if let track = audioPlayer.currentTrack {
             HStack(spacing: 12) {
                 // Album artwork placeholder
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 50, height: 50)
-                    .overlay(
-                        Image(systemName: "music.note")
-                            .foregroundColor(.secondary)
-                    )
+                if let artwork = track.artwork {
+                    Image(nsImage: artwork)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 50, height: 50)
+                        .cornerRadius(4)
+                        .clipped()
+                } else {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Image(systemName: "music.note")
+                                .foregroundColor(.secondary)
+                        )
+                }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(track.title)
