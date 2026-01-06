@@ -7,9 +7,6 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
     var libraryManager: LibraryManager!
     var testDirectory: URL!
     
-    // Static constant for the bookmark key to use before libraryManager is initialized
-    private static let directoryBookmarksKey = "MusicPlayerDirectoryBookmarks"
-    
     override func setUp() async throws {
         try await super.setUp()
         
@@ -18,20 +15,27 @@ class LibraryManagerSecurityBookmarkTests: XCTestCase {
         testDirectory = tempDir.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: testDirectory, withIntermediateDirectories: true)
         
+        // Create a temporary instance to get the key value
+        let tempManager = LibraryManager()
+        let bookmarkKey = tempManager.directoryBookmarksKey
+        
         // Clear any existing bookmarks from UserDefaults
-        UserDefaults.standard.removeObject(forKey: Self.directoryBookmarksKey)
+        UserDefaults.standard.removeObject(forKey: bookmarkKey)
         
         libraryManager = LibraryManager()
     }
     
     override func tearDown() async throws {
+        // Get the bookmark key from the manager
+        let bookmarkKey = libraryManager?.directoryBookmarksKey ?? "MusicPlayerDirectoryBookmarks"
+        
         // Clean up test directory
         if let testDirectory = testDirectory {
             try? FileManager.default.removeItem(at: testDirectory)
         }
         
         // Clear bookmarks
-        UserDefaults.standard.removeObject(forKey: Self.directoryBookmarksKey)
+        UserDefaults.standard.removeObject(forKey: bookmarkKey)
         
         libraryManager = nil
         testDirectory = nil
