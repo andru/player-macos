@@ -4,7 +4,9 @@ import AppKit
 // MARK: - Window Drag Area Helper
 struct WindowDragArea: NSViewRepresentable {
     func makeNSView(context: Context) -> DraggableView {
-        return DraggableView()
+        let view = DraggableView()
+        view.wantsLayer = true
+        return view
     }
     
     func updateNSView(_ nsView: DraggableView, context: Context) {
@@ -12,8 +14,8 @@ struct WindowDragArea: NSViewRepresentable {
     }
     
     class DraggableView: NSView {
-        override func mouseDown(with event: NSEvent) {
-            window?.performDrag(with: event)
+        override var mouseDownCanMoveWindow: Bool {
+            return true
         }
     }
 }
