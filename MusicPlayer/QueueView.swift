@@ -68,7 +68,7 @@ struct QueueView: View {
                         }
                     }
                     .onAppear {
-                        if audioPlayer.currentQueueIndex >= 0 {
+                        if audioPlayer.currentQueueIndex >= 0 && audioPlayer.currentQueueIndex < audioPlayer.queue.count {
                             proxy.scrollTo(audioPlayer.queue[audioPlayer.currentQueueIndex].id, anchor: .center)
                         }
                     }
@@ -172,7 +172,8 @@ struct QueueDropDelegate: DropDelegate {
     let audioPlayer: AudioPlayer
     
     func performDrop(info: DropInfo) -> Bool {
-        return true
+        // Return success only if we have valid item providers
+        return !info.itemProviders(for: [.text]).isEmpty
     }
     
     func dropEntered(info: DropInfo) {

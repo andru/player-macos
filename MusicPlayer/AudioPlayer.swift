@@ -123,7 +123,7 @@ class AudioPlayer: NSObject, ObservableObject {
         let previousIndex = currentQueueIndex - 1
         if previousIndex >= 0 {
             currentQueueIndex = previousIndex
-            // Mark the previous track as not played when going back
+            // Reset played state since we're playing this track again
             queue[previousIndex].hasBeenPlayed = false
             play(track: queue[previousIndex].track)
         }
