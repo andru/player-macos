@@ -313,10 +313,6 @@ struct AlbumGridItem: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                Text(album.albumArtist ?? "-")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
                 
                 Text("\(album.tracks.count) songs")
                     .font(.caption)

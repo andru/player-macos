@@ -200,75 +200,79 @@ struct AlbumTrackRow: View {
     @State private var clickCount = 0
     @State private var clickWorkItem: DispatchWorkItem?
     
+    private static let singleClickDelay: TimeInterval = 0.25
+    
     var body: some View {
-        HStack {
-            if let trackNum = track.trackNumber {
-                Text("\(trackNum)")
-                    .frame(width: 40, alignment: .leading)
-                    .foregroundColor(.secondary)
-            } else {
-                Text("-")
-                    .frame(width: 40, alignment: .leading)
-                    .foregroundColor(.secondary)
-            }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(track.title)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Show artist if different from album artist
-                if track.artist != albumArtist {
-                    Text(track.artist)
-                        .font(.caption)
+        VStack(spacing: 0) {
+            HStack {
+                if let trackNum = track.trackNumber {
+                    Text("\(trackNum)")
+                        .frame(width: 40, alignment: .leading)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("-")
+                        .frame(width: 40, alignment: .leading)
                         .foregroundColor(.secondary)
                 }
-            }
-            
-            Text(track.formattedDuration)
-                .frame(width: 80, alignment: .trailing)
-                .foregroundColor(.secondary)
-            
-            // Heart icon placeholder
-            Image(systemName: "heart")
-                .frame(width: 40)
-                .foregroundColor(.secondary)
-                .opacity(0.5)
-        }
-        .padding(.horizontal, 32)
-        .padding(.vertical, 8)
-        .background(isSelected ? Color.accentColor.opacity(0.2) : (isHovered ? Color.accentColor.opacity(0.1) : Color.clear))
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            isHovered = hovering
-        }
-        .gesture(
-            TapGesture(count: 2)
-                .onEnded { _ in
-                    clickWorkItem?.cancel()
-                    clickCount = 0
-                    onDoubleClick()
-                }
-                .exclusively(before: TapGesture(count: 1)
-                    .onEnded { _ in
-                        clickCount += 1
-                        clickWorkItem?.cancel()
-                        
-                        let workItem = DispatchWorkItem {
-                            if clickCount == 1 {
-                                if let event = NSApp.currentEvent {
-                                    onSingleClick(event.modifierFlags)
-                                } else {
-                                    onSingleClick([])
-                                }
-                            }
-                            clickCount = 0
-                        }
-                        clickWorkItem = workItem
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(track.title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // Show artist if different from album artist
+                    if track.artist != albumArtist {
+                        Text(track.artist)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                )
-        )
-        
-        Divider()
+                }
+                
+                Text(track.formattedDuration)
+                    .frame(width: 80, alignment: .trailing)
+                    .foregroundColor(.secondary)
+                
+                // Heart icon placeholder
+                Image(systemName: "heart")
+                    .frame(width: 40)
+                    .foregroundColor(.secondary)
+                    .opacity(0.5)
+            }
+            .padding(.horizontal, 32)
+            .padding(.vertical, 8)
+            .background(isSelected ? Color.accentColor.opacity(0.2) : (isHovered ? Color.accentColor.opacity(0.1) : Color.clear))
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .gesture(
+                TapGesture(count: 2)
+                    .onEnded { _ in
+                        clickWorkItem?.cancel()
+                        clickCount = 0
+                        onDoubleClick()
+                    }
+                    .exclusively(before: TapGesture(count: 1)
+                        .onEnded { _ in
+                            clickCount += 1
+                            clickWorkItem?.cancel()
+                            
+                            let workItem = DispatchWorkItem {
+                                if clickCount == 1 {
+                                    if let event = NSApp.currentEvent {
+                                        onSingleClick(event.modifierFlags)
+                                    } else {
+                                        onSingleClick([])
+                                    }
+                                }
+                                clickCount = 0
+                            }
+                            clickWorkItem = workItem
+                            DispatchQueue.main.asyncAfter(deadline: .now() + Self.singleClickDelay, execute: workItem)
+                        }
+                    )
+            )
+            
+            Divider()
+        }
     }
 }
