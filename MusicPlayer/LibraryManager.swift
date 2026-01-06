@@ -2,8 +2,23 @@ import Foundation
 import AVFoundation
 
 class LibraryManager: ObservableObject {
-    @Published var tracks: [Track] = []
-    @Published var collections: [Collection] = []
+    @Published var tracks: [Track] = [] {
+        didSet {
+            if isLoaded {
+                saveLibrary()
+            }
+        }
+    }
+    @Published var collections: [Collection] = [] {
+        didSet {
+            if isLoaded {
+                saveLibrary()
+            }
+        }
+    }
+    
+    private let libraryFileName = "MusicLibrary.json"
+    private var isLoaded = false
     
     var albums: [Album] {
         var albumDict: [String: Album] = [:]
@@ -46,8 +61,85 @@ class LibraryManager: ObservableObject {
     }
     
     init() {
-        // Add some sample data for demonstration
-        loadSampleData()
+        // Load existing library data, or use sample data if none exists
+        loadLibrary()
+        isLoaded = true
+    }
+    
+    // MARK: - Persistence
+    
+    /// Get the URL for the library file in Application Support directory
+    private func getLibraryFileURL() -> URL? {
+        guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            print("Error: Could not find Application Support directory")
+            return nil
+        }
+        
+        // Create app-specific directory
+        let appDirectory = appSupportURL.appendingPathComponent("MusicPlayer", isDirectory: true)
+        
+        // Create directory if it doesn't exist
+        if !FileManager.default.fileExists(atPath: appDirectory.path) {
+            do {
+                try FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                print("Error creating app directory: \(error)")
+                return nil
+            }
+        }
+        
+        return appDirectory.appendingPathComponent(libraryFileName)
+    }
+    
+    /// Save the library data to disk
+    private func saveLibrary() {
+        guard let fileURL = getLibraryFileURL() else {
+            print("Error: Could not get library file URL")
+            return
+        }
+        
+        let libraryData = LibraryData(tracks: tracks, collections: collections)
+        
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(libraryData)
+            try data.write(to: fileURL, options: .atomic)
+            print("Library saved to: \(fileURL.path)")
+        } catch {
+            print("Error saving library: \(error)")
+        }
+    }
+    
+    /// Load the library data from disk
+    private func loadLibrary() {
+        guard let fileURL = getLibraryFileURL() else {
+            print("Error: Could not get library file URL, loading sample data")
+            loadSampleData()
+            return
+        }
+        
+        // Check if file exists
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            print("No existing library file found, loading sample data")
+            loadSampleData()
+            return
+        }
+        
+        do {
+            let data = try Data(contentsOf: fileURL)
+            let decoder = JSONDecoder()
+            let libraryData = try decoder.decode(LibraryData.self, from: data)
+            
+            tracks = libraryData.tracks
+            collections = libraryData.collections
+            
+            print("Library loaded from: \(fileURL.path)")
+            print("Loaded \(tracks.count) tracks and \(collections.count) collections")
+        } catch {
+            print("Error loading library: \(error), loading sample data")
+            loadSampleData()
+        }
     }
     
     func addTrack(_ track: Track) {
@@ -67,10 +159,16 @@ class LibraryManager: ObservableObject {
     }
     
     func importFiles(urls: [URL]) async {
+        var newTracks: [Track] = []
         for url in urls {
             if let track = await createTrack(from: url) {
-                addTrack(track)
+                newTracks.append(track)
             }
+        }
+        
+        // Add all tracks at once to trigger save only once
+        if !newTracks.isEmpty {
+            tracks.append(contentsOf: newTracks)
         }
     }
     
@@ -214,4 +312,11 @@ class LibraryManager: ObservableObject {
             Collection(name: "Favorites", trackIDs: [sampleTracks[0].id, sampleTracks[2].id])
         ]
     }
+}
+
+// MARK: - Library Data Container
+/// Container for encoding/decoding library data to JSON
+private struct LibraryData: Codable {
+    let tracks: [Track]
+    let collections: [Collection]
 }
