@@ -276,14 +276,17 @@ class LibraryManager: ObservableObject {
     private func restoreDirectoryBookmarks() {
         guard let bookmarks = UserDefaults.standard.dictionary(forKey: directoryBookmarksKey) as? [String: Data] else { return }
         
-        for (_, bookmarkData) in bookmarks {
+        for (path, bookmarkData) in bookmarks {
             var isStale = false
             do {
                 let url = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &isStale)
                 if isStale {
                     print("LibraryManager: directory bookmark is stale, refreshing: \(url.path)")
-                    // Refresh the stale bookmark
-                    persistDirectoryBookmark(for: url)
+                    // Refresh the stale bookmark by creating a new one
+                    let newBookmarkData = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+                    var updatedBookmarks = bookmarks
+                    updatedBookmarks[path] = newBookmarkData
+                    UserDefaults.standard.set(updatedBookmarks, forKey: directoryBookmarksKey)
                 }
                 
                 if url.startAccessingSecurityScopedResource() {
@@ -317,11 +320,9 @@ class LibraryManager: ObservableObject {
         restoreDirectoryBookmarks()
         
         // Start accessing the selected directory
-        let accessing = url.startAccessingSecurityScopedResource()
+        _ = url.startAccessingSecurityScopedResource()
         defer {
-            if accessing {
-                url.stopAccessingSecurityScopedResource()
-            }
+            url.stopAccessingSecurityScopedResource()
         }
         
         // Persist bookmark for this directory
