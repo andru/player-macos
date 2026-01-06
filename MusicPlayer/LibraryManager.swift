@@ -18,6 +18,7 @@ class LibraryManager: ObservableObject {
                     name: track.album,
                     artist: track.artist,
                     artworkURL: track.artworkURL,
+                    artworkData: track.artworkData,
                     tracks: [track],
                     year: track.year
                 )
@@ -80,13 +81,29 @@ class LibraryManager: ObservableObject {
         var title = url.deletingPathExtension().lastPathComponent
         var artist = "Unknown Artist"
         var album = "Unknown Album"
+        var artworkData: Data? = nil
         
         // Load duration and metadata using availability-safe helper
         let (duration, metadataItems) = await loadDurationAndMetadata(for: asset)
         
         for item in metadataItems {
-            // Try stringValue first, then fall back to the raw value for better compatibility
             let key = item.commonKey?.rawValue
+            
+            // Handle artwork separately
+            if key == "artwork" {
+                // Try to extract artwork data from various possible formats
+                if let data = item.value as? Data {
+                    artworkData = data
+                } else if let dict = item.value as? [AnyHashable: Any],
+                          let imageData = dict["data"] as? Data {
+                    artworkData = imageData
+                } else if let nsData = item.dataValue {
+                    artworkData = nsData
+                }
+                continue
+            }
+            
+            // Try stringValue first, then fall back to the raw value for better compatibility
             var valueString: String? = item.stringValue
             if valueString == nil {
                 if let v = item.value as? String {
@@ -117,7 +134,8 @@ class LibraryManager: ObservableObject {
             artist: artist,
             album: album,
             duration: duration,
-            fileURL: url
+            fileURL: url,
+            artworkData: artworkData
         )
     }
 
