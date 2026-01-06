@@ -73,12 +73,24 @@ class LibraryManager: ObservableObject {
     
     // MARK: - Persistence
     
+    /// Store library bundle path in UserDefaults
+    private func storeLibraryPath(_ url: URL) {
+        UserDefaults.standard.set(url.path, forKey: libraryPathKey)
+    }
+    
     /// Get the URL for the library file in .library bundle
     private func getLibraryFileURL() -> URL? {
         // Check if user has previously selected a library location
         if let storedPath = UserDefaults.standard.string(forKey: libraryPathKey) {
             let storedURL = URL(fileURLWithPath: storedPath)
-            return storedURL.appendingPathComponent(libraryFileName)
+            // Validate that the directory still exists and is accessible
+            if FileManager.default.fileExists(atPath: storedURL.path) {
+                return storedURL.appendingPathComponent(libraryFileName)
+            } else {
+                print("Previously selected library location no longer exists: \(storedPath)")
+                // Clear invalid path
+                UserDefaults.standard.removeObject(forKey: libraryPathKey)
+            }
         }
         
         // Try to use Music directory (may fail due to sandbox restrictions)
@@ -100,7 +112,7 @@ class LibraryManager: ObservableObject {
             }
             
             // Store this path for future use
-            UserDefaults.standard.set(libraryBundleURL.path, forKey: libraryPathKey)
+            storeLibraryPath(libraryBundleURL)
             return libraryBundleURL.appendingPathComponent(libraryFileName)
         }
         
@@ -122,7 +134,7 @@ class LibraryManager: ObservableObject {
             }
             
             // Store the library bundle path
-            UserDefaults.standard.set(libraryBundleURL.path, forKey: libraryPathKey)
+            storeLibraryPath(libraryBundleURL)
             
             // Clear the setup flag
             needsLibraryLocationSetup = false

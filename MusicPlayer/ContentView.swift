@@ -58,7 +58,10 @@ struct ContentView: View {
         
         panel.begin { response in
             if response == .OK, let url = panel.url {
-                library.setLibraryLocation(url: url)
+                // Ensure UI updates happen on main thread
+                DispatchQueue.main.async {
+                    self.library.setLibraryLocation(url: url)
+                }
             }
         }
     }
