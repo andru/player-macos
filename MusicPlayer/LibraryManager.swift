@@ -155,8 +155,7 @@ class LibraryManager: ObservableObject {
         
         // Create a new debounced save operation
         let workItem = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            self.performSave()
+            self?.performSave()
         }
         
         saveWorkItem = workItem

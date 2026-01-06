@@ -56,8 +56,9 @@ struct ContentView: View {
         panel.message = "Choose a location for your Music Library"
         panel.prompt = "Choose"
         
-        panel.begin { response in
+        panel.begin { [weak self] response in
             DispatchQueue.main.async {
+                guard let self = self else { return }
                 if response == .OK, let url = panel.url {
                     // User selected a location
                     self.library.setLibraryLocation(url: url)
