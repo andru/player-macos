@@ -98,7 +98,7 @@ class LibraryManager: ObservableObject {
                           let imageData = dict["data"] as? Data {
                     artworkData = imageData
                 } else if let nsData = item.dataValue {
-                    artworkData = nsData as Data
+                    artworkData = nsData
                 }
                 continue
             }
