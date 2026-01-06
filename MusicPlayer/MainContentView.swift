@@ -90,19 +90,20 @@ struct MainContentView: View {
             if selectedView == .albums || selectedCollection != nil {
                 ForEach(filteredAlbums) { album in
                     AlbumGridItem(album: album) {
-                        if let firstTrack = album.tracks.first {
-                            audioPlayer.play(track: firstTrack)
-                        }
+                        audioPlayer.queueTracks(album.tracks, startPlaying: true)
                     }
                 }
             } else if selectedView == .artists {
                 ForEach(filteredArtists) { artist in
-                    ArtistGridItem(artist: artist)
+                    ArtistGridItem(artist: artist) {
+                        let allTracks = artist.albums.flatMap { $0.tracks }
+                        audioPlayer.queueTracks(allTracks, startPlaying: true)
+                    }
                 }
             } else {
                 ForEach(filteredTracks) { track in
                     TrackGridItem(track: track) {
-                        audioPlayer.play(track: track)
+                        audioPlayer.queueTracks([track], startPlaying: true)
                     }
                 }
             }
@@ -136,7 +137,7 @@ struct MainContentView: View {
             // Rows
             ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
                 TrackListRow(track: track, index: index + 1) {
-                    audioPlayer.play(track: track)
+                    audioPlayer.queueTracks([track], startPlaying: true)
                 }
             }
         }
@@ -229,17 +230,21 @@ struct AlbumGridItem: View {
 
 struct ArtistGridItem: View {
     let artist: Artist
+    let action: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Circle()
-                .fill(Color.gray.opacity(0.3))
-                .aspectRatio(1, contentMode: .fit)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(.secondary)
-                )
+            Button(action: action) {
+                Circle()
+                    .fill(Color.gray.opacity(0.3))
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                    )
+            }
+            .buttonStyle(.plain)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(artist.name)

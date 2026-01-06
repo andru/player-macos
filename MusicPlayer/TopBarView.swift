@@ -3,17 +3,18 @@ import SwiftUI
 struct TopBarView: View {
     @ObservedObject var audioPlayer: AudioPlayer
     @Binding var searchText: String
+    @Binding var showQueue: Bool
     
     var body: some View {
         HStack(spacing: 16) {
             // Playback controls
             HStack(spacing: 12) {
-                Button(action: { audioPlayer.skipBackward() }) {
+                Button(action: { audioPlayer.playPrevious() }) {
                     Image(systemName: "backward.fill")
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
-                .disabled(audioPlayer.currentTrack == nil)
+                .disabled(audioPlayer.currentQueueIndex <= 0)
                 
                 Button(action: togglePlayPause) {
                     Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
@@ -22,12 +23,12 @@ struct TopBarView: View {
                 .buttonStyle(.plain)
                 .disabled(audioPlayer.currentTrack == nil)
                 
-                Button(action: { audioPlayer.skipForward() }) {
+                Button(action: { audioPlayer.playNext() }) {
                     Image(systemName: "forward.fill")
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
-                .disabled(audioPlayer.currentTrack == nil)
+                .disabled(audioPlayer.currentQueueIndex >= audioPlayer.queue.count - 1)
             }
             .frame(width: 120)
             
@@ -35,6 +36,13 @@ struct TopBarView: View {
             NowPlayingWidget(audioPlayer: audioPlayer)
             
             Spacer()
+            
+            // Queue button
+            Button(action: { showQueue.toggle() }) {
+                Image(systemName: "list.bullet")
+                    .font(.title3)
+            }
+            .buttonStyle(.plain)
             
             // Search box
             HStack {
