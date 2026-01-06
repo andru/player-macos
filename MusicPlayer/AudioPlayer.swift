@@ -18,7 +18,7 @@ class AudioPlayer: ObservableObject {
             // Create and configure audio player
             player = try AVAudioPlayer(contentsOf: track.fileURL)
             player?.prepareToPlay()
-            player?.delegate = self as? AVAudioPlayerDelegate
+            player?.delegate = self
             
             currentTrack = track
             duration = track.duration

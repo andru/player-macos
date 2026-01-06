@@ -171,7 +171,7 @@ struct MainContentView: View {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.allowedContentTypes = [.audio, .mp3, .mpeg4Audio]
+        panel.allowedContentTypes = [.audio]
         
         if panel.runModal() == .OK {
             library.importFiles(urls: panel.urls)
