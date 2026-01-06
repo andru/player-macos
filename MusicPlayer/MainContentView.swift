@@ -96,8 +96,8 @@ struct MainContentView: View {
             } else if selectedView == .artists {
                 ForEach(filteredArtists) { artist in
                     ArtistGridItem(artist: artist) {
-                        let allTracks = artist.albums.flatMap { $0.tracks }
-                        audioPlayer.queueTracks(allTracks, startPlaying: true)
+//                        let allTracks = artist.albums.flatMap { $0.tracks }
+//                        audioPlayer.queueTracks(allTracks, startPlaying: true)
                     }
                 }
             } else {
@@ -215,7 +215,11 @@ struct AlbumGridItem: View {
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text(album.artist)
+                Text(album.albumArtist ?? album.artist)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                Text(album.albumArtist ?? "-")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)

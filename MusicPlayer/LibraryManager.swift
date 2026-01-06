@@ -22,7 +22,7 @@ class LibraryManager: ObservableObject {
         var albumDict: [String: Album] = [:]
 
         for track in tracks {
-            let key = "\(track.album)-\(track.artist)"
+            let key = "\(track.album)-\(track.albumArtist ?? track.artist)"
             if var album = albumDict[key] {
                 album.tracks.append(track)
                 albumDict[key] = album
@@ -30,6 +30,7 @@ class LibraryManager: ObservableObject {
                 let album = Album(
                     name: track.album,
                     artist: track.artist,
+                    albumArtist: track.albumArtist,
                     artworkURL: track.artworkURL,
                     tracks: [track],
                     year: track.year
@@ -276,30 +277,25 @@ class LibraryManager: ObservableObject {
         var title = url.deletingPathExtension().lastPathComponent
         var artist = "Unknown Artist"
         var album = "Unknown Album"
+        var year: Int? = nil
+        var trackNumber: Int? = nil
 
         // Load duration and metadata using availability-safe helper
         let (duration, metadataItems) = await loadDurationAndMetadata(for: asset)
+        var albumArtist: String? = await extractAlbumArtist(from: metadataItems)
 
         for item in metadataItems {
             // Prefer modern async loading on macOS 13+
             var valueString: String? = nil
-            if #available(macOS 13.0, *) {
-                if let sv: String = try? await item.load(.stringValue) {
-                    valueString = sv
-                } else if let v = try? await item.load(.value) {
-                    if let s = v as? String { valueString = s }
-                    else if let n = v as? NSNumber { valueString = n.stringValue }
-                    else { valueString = String(describing: v) }
-                }
-            } else {
-                // Legacy fallback
-                valueString = item.stringValue
-                if valueString == nil {
-                    if let v = item.value as? String { valueString = v }
-                    else if let v = item.value as? NSNumber { valueString = v.stringValue }
-                    else if let v = item.value { valueString = String(describing: v) }
-                }
+        
+            if let sv: String = try? await item.load(.stringValue) {
+                valueString = sv
+            } else if let v = try? await item.load(.value) {
+                if let s = v as? String { valueString = s }
+                else if let n = v as? NSNumber { valueString = n.stringValue }
+                else { valueString = String(describing: v) }
             }
+        
 
             let key = item.commonKey?.rawValue
             guard let keyUnwrapped = key, let value = valueString else { continue }
@@ -311,6 +307,10 @@ class LibraryManager: ObservableObject {
                 artist = value
             case "albumName":
                 album = value
+            case "year":
+                year = value.isEmpty ? nil : Int(value)
+            case "trackNumber":
+                trackNumber = value.isEmpty ? nil : Int(value)
             default:
                 break
             }
@@ -320,8 +320,14 @@ class LibraryManager: ObservableObject {
             title: title,
             artist: artist,
             album: album,
+            albumArtist: albumArtist,
             duration: duration,
-            fileURL: url
+            fileURL: url,
+            artworkURL: nil,
+            artworkData: nil,
+            genre: nil,
+            year: year,
+            trackNumber: trackNumber
         )
     }
 
@@ -352,6 +358,48 @@ class LibraryManager: ObservableObject {
         }
 
         return (duration, metadataItems)
+    }
+    
+    func extractAlbumArtist(from metadataItems: [AVMetadataItem]) async -> String? {
+        func stringValue(from item: AVMetadataItem) async -> String? {
+            if let sv: String = try? await item.load(.stringValue) {
+                return sv
+            }
+            if let v = try? await item.load(.value) {
+                if let s = v as? String { return s }
+                if let n = v as? NSNumber { return n.stringValue }
+                return String(describing: v)
+            }
+            return nil
+        }
+
+        for item in metadataItems {
+            // Prefer commonKey if present (may not exist for album artist)
+            if let ck = item.commonKey?.rawValue, ck == "albumArtist", let v = await stringValue(from: item) {
+                return v
+            }
+
+            // ID3v2: Album artist frame is "TPE2"
+            if item.keySpace == .id3 {
+                if let key = item.key as? String, key == "TPE2", let v = await stringValue(from: item) {
+                    return v
+                }
+            }
+
+            // MP4 / iTunes metadata: album artist key is "aART"
+            if item.keySpace == .iTunes {
+                if let key = item.key as? String, key == "aART", let v = await stringValue(from: item) {
+                    return v
+                }
+            }
+
+            // Some files may expose album artist via the item's identifier
+            if let id = item.identifier?.rawValue.lowercased(), id.contains("albumartist") || id.contains("aart"), let v = await stringValue(from: item) {
+                return v
+            }
+        }
+
+        return nil
     }
 
 }
