@@ -19,6 +19,8 @@ class LibraryManager: ObservableObject {
     
     private let libraryFileName = "MusicLibrary.json"
     private var isLoaded = false
+    private var saveWorkItem: DispatchWorkItem?
+    private let saveDebounceInterval: TimeInterval = 0.5  // Wait 0.5 seconds before saving
     
     var albums: [Album] {
         var albumDict: [String: Album] = [:]
@@ -93,6 +95,23 @@ class LibraryManager: ObservableObject {
     
     /// Save the library data to disk
     private func saveLibrary() {
+        // Cancel any pending save operation
+        saveWorkItem?.cancel()
+        
+        // Create a new debounced save operation
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.performSave()
+        }
+        
+        saveWorkItem = workItem
+        
+        // Schedule the save operation after the debounce interval
+        DispatchQueue.main.asyncAfter(deadline: .now() + saveDebounceInterval, execute: workItem)
+    }
+    
+    /// Perform the actual save operation to disk
+    private func performSave() {
         guard let fileURL = getLibraryFileURL() else {
             print("Error: Could not get library file URL")
             return
