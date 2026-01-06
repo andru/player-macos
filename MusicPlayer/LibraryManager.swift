@@ -17,7 +17,10 @@ class LibraryManager: ObservableObject {
         }
     }
     
+    @Published var needsLibraryLocationSetup = false
+    
     private let libraryFileName = "MusicLibrary.json"
+    private let libraryPathKey = "LibraryBundlePath"
     private var isLoaded = false
     private var saveWorkItem: DispatchWorkItem?
     private let saveDebounceInterval: TimeInterval = 0.5  // Wait 0.5 seconds before saving
@@ -72,25 +75,65 @@ class LibraryManager: ObservableObject {
     
     /// Get the URL for the library file in .library bundle
     private func getLibraryFileURL() -> URL? {
-        guard let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first else {
-            print("Error: Could not find Music directory")
-            return nil
+        // Check if user has previously selected a library location
+        if let storedPath = UserDefaults.standard.string(forKey: libraryPathKey),
+           let storedURL = URL(string: storedPath) {
+            return storedURL.appendingPathComponent(libraryFileName)
         }
         
-        // Create .library bundle in Music directory (standard pattern for music apps on macOS)
-        let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
-        
-        // Create library bundle if it doesn't exist
-        if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
-            do {
-                try FileManager.default.createDirectory(at: libraryBundleURL, withIntermediateDirectories: true, attributes: nil)
-            } catch {
-                print("Error creating library bundle: \(error)")
-                return nil
+        // Try to use Music directory (may fail due to sandbox restrictions)
+        if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
+            let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
+            
+            // Test if we can create/access the directory
+            if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
+                do {
+                    try FileManager.default.createDirectory(at: libraryBundleURL, withIntermediateDirectories: true, attributes: nil)
+                } catch {
+                    print("Cannot access Music directory (sandbox restriction): \(error)")
+                    // Signal that we need user to select a location
+                    DispatchQueue.main.async {
+                        self.needsLibraryLocationSetup = true
+                    }
+                    return nil
+                }
             }
+            
+            // Store this path for future use
+            UserDefaults.standard.set(libraryBundleURL.absoluteString, forKey: libraryPathKey)
+            return libraryBundleURL.appendingPathComponent(libraryFileName)
         }
         
-        return libraryBundleURL.appendingPathComponent(libraryFileName)
+        print("Error: Could not find Music directory")
+        DispatchQueue.main.async {
+            self.needsLibraryLocationSetup = true
+        }
+        return nil
+    }
+    
+    /// Set the library location (called when user selects a directory)
+    func setLibraryLocation(url: URL) {
+        // Create .library bundle at the selected location
+        let libraryBundleURL = url.appendingPathComponent("MusicPlayer.library", isDirectory: true)
+        
+        do {
+            if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
+                try FileManager.default.createDirectory(at: libraryBundleURL, withIntermediateDirectories: true, attributes: nil)
+            }
+            
+            // Store the library bundle path
+            UserDefaults.standard.set(libraryBundleURL.absoluteString, forKey: libraryPathKey)
+            
+            // Clear the setup flag
+            needsLibraryLocationSetup = false
+            
+            // Reload library from new location
+            loadLibrary()
+            
+            print("Library location set to: \(libraryBundleURL.path)")
+        } catch {
+            print("Error setting library location: \(error)")
+        }
     }
     
     /// Save the library data to disk
