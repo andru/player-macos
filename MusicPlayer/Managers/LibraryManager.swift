@@ -12,7 +12,6 @@ class LibraryManager: ObservableObject {
     @Published var libraryURL: URL? = nil
 
     // Internal
-    private let libraryFileName = "library.json"
     private let bookmarkKey = "MusicPlayerLibraryBookmark"
     internal let directoryBookmarksKey = "MusicPlayerDirectoryBookmarks"
     private var isSecurityScoped = false
@@ -209,13 +208,6 @@ class LibraryManager: ObservableObject {
         let infoURL = contentsURL.appendingPathComponent("Info.plist")
         try plistData.write(to: infoURL, options: .atomic)
 
-        // Create initial empty library JSON in Contents/Resources/
-        let initial = LibraryFile(version: 1, tracks: [], collections: [])
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        let data = try encoder.encode(initial)
-        let libraryJSONURL = resourcesURL.appendingPathComponent(libraryFileName)
-        try data.write(to: libraryJSONURL, options: .atomic)
 
         // Copy an embedded LibraryIcon.pdf into Resources if present in app bundle
         if let iconURL = Bundle.main.url(forResource: "LibraryIcon", withExtension: "pdf") {
@@ -245,6 +237,7 @@ class LibraryManager: ObservableObject {
 
     private func loadLibrary() throws {
         guard let bundleURL = libraryURL else { return }
+<<<<<<< Updated upstream:MusicPlayer/LibraryManager.swift
         let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
 
         let fm = FileManager.default
@@ -259,6 +252,25 @@ class LibraryManager: ObservableObject {
         let file = try decoder.decode(LibraryFile.self, from: data)
         self.tracks = file.tracks
         self.collections = file.collections
+=======
+        
+        // Try to open/initialize the database
+        try databaseManager.openDatabase(at: bundleURL)
+        
+        // Try to load from database first
+        do {
+            self.tracks = try databaseManager.loadTracks()
+            self.collections = try databaseManager.loadCollections()
+            
+            // If database has data or JSON doesn't exist, we're done
+            if !self.tracks.isEmpty || !self.collections.isEmpty  {
+                return
+            }
+        } catch {
+            print("LibraryManager: error loading from database: \(error)")
+        }
+        
+>>>>>>> Stashed changes:MusicPlayer/Managers/LibraryManager.swift
     }
 
     func saveLibrary() {

@@ -5,7 +5,6 @@ import AppKit
 import ImageIO
 import CryptoKit
 
-// MARK: - Track Model
 struct Track: Identifiable, Codable, Hashable {
     let id: UUID
     var title: String
@@ -159,90 +158,4 @@ extension Track {
             // In a larger app you might want to log this.
         }
     }
-}
-
-// MARK: - Album Model
-struct Album: Identifiable, Hashable {
-    var id: String {
-        // Use shared key generation to ensure consistency
-        Album.makeKey(name: name, albumArtist: albumArtist, artist: artist)
-    }
-    var name: String
-    var artist: String
-    var albumArtist: String?
-    var artworkURL: URL?
-    var artworkData: Data?
-    var tracks: [Track]
-    var year: Int?
-    
-    init(name: String, artist: String, albumArtist: String? = nil, artworkURL: URL? = nil, artworkData: Data? = nil, tracks: [Track] = [], year: Int? = nil) {
-        self.name = name
-        self.artist = artist
-        self.albumArtist = albumArtist
-        self.artworkURL = artworkURL
-        self.artworkData = artworkData
-        self.tracks = tracks
-        self.year = year
-    }
-    
-    /// Generate a stable key for an album based on its name and artist
-    /// Uses :: delimiter to avoid collision issues with hyphens in metadata
-    static func makeKey(name: String, albumArtist: String?, artist: String) -> String {
-        "\(name)::\(albumArtist ?? artist)"
-    }
-
-    var artwork: NSImage? {
-        // Prefer artworkData if available
-        if let artworkData = artworkData {
-            return NSImage(data: artworkData)
-        }
-        // Fall back to first track's artwork
-        if let firstTrackArtwork = tracks.first?.artwork {
-            return firstTrackArtwork
-        }
-        return nil
-    }
-}
-
-// MARK: - Artist Model
-struct Artist: Identifiable, Hashable {
-    let id: UUID
-    var name: String
-    var albums: [Album]
-
-    init(id: UUID = UUID(), name: String, albums: [Album] = []) {
-        self.id = id
-        self.name = name
-        self.albums = albums
-    }
-
-    var trackCount: Int {
-        albums.reduce(0) { $0 + $1.tracks.count }
-    }
-}
-
-// MARK: - Collection Model
-struct Collection: Identifiable, Codable, Hashable {
-    let id: UUID
-    var name: String
-    var trackIDs: [UUID]
-
-    init(id: UUID = UUID(), name: String, trackIDs: [UUID] = []) {
-        self.id = id
-        self.name = name
-        self.trackIDs = trackIDs
-    }
-}
-
-// MARK: - View Selection
-enum LibraryView: String, CaseIterable {
-    case artists = "Artists"
-    case albums = "Albums"
-    case songs = "Songs"
-}
-
-// MARK: - Display Mode
-enum DisplayMode {
-    case grid
-    case list
 }
