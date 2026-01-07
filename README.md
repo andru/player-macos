@@ -47,6 +47,8 @@ A native macOS music player and library manager built with Swift and SwiftUI.
   - Organize music by Artists, Albums, and Songs
   - Create custom collections (playlists)
   - Search across all tracks, artists, and albums
+  - SQLite-based storage with versioned schema migrations
+  - Automatic migration from legacy JSON format
   - Persistent library storage in .library bundle
   - Attempts to use ~/Music by default, or prompts for location if restricted
   - Library data survives app reinstalls and updates
@@ -130,11 +132,13 @@ MusicPlayer/
 │   ├── MusicModels.swift       # Data models (Track, Album, Artist, Collection)
 │   ├── AudioPlayer.swift       # Audio playback engine
 │   ├── LibraryManager.swift    # Library management and data
+│   ├── DatabaseManager.swift   # SQLite database operations
 │   ├── Assets.xcassets/        # App assets and icons
 │   └── MusicPlayer.entitlements # App permissions
 └── MusicPlayerTests/
+    ├── DatabaseManagerTests.swift      # Database operation tests
     ├── ViewModePreferencesTests.swift  # Tests for view mode persistence
-    └── README.md               # Test documentation
+    └── README.md                       # Test documentation
 ```
 
 ## Testing
@@ -162,10 +166,24 @@ The app follows the MVVM (Model-View-ViewModel) pattern with SwiftUI:
 
 - **AudioPlayer:** Manages audio playback using AVAudioPlayer
 - **LibraryManager:** Manages the music library, collections, and metadata
+- **DatabaseManager:** Handles SQLite database operations with versioned migrations
 - **ContentView:** Main coordinator connecting all views
 - **SidebarView:** Navigation sidebar with library views and collections
 - **TopBarView:** Playback controls and track information
 - **MainContentView:** Displays library content in grid or list format
+
+## Database Storage
+
+The application uses SQLite for persistent storage with versioned schema migrations.
+
+### Migration from JSON
+
+If you're upgrading from a previous version that used JSON storage:
+- The app will automatically detect the old `library.json` file
+- All tracks and collections will be migrated to the new SQLite database
+- The original JSON file is backed up as `library.json.backup`
+
+For more details, see [DATABASE_MIGRATION.md](DATABASE_MIGRATION.md).
 
 ## Permissions
 
