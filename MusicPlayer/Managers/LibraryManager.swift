@@ -12,7 +12,6 @@ class LibraryManager: ObservableObject {
     @Published var libraryURL: URL? = nil
 
     // Internal
-    private let libraryFileName = "library.json"
     private let bookmarkKey = "MusicPlayerLibraryBookmark"
     internal let directoryBookmarksKey = "MusicPlayerDirectoryBookmarks"
     private var isSecurityScoped = false
@@ -216,14 +215,6 @@ class LibraryManager: ObservableObject {
         let infoURL = contentsURL.appendingPathComponent("Info.plist")
         try plistData.write(to: infoURL, options: .atomic)
 
-        // Create initial empty library JSON in Contents/Resources/
-        let initial = LibraryFile(version: 1, tracks: [], collections: [])
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        let data = try encoder.encode(initial)
-        let libraryJSONURL = resourcesURL.appendingPathComponent(libraryFileName)
-        try data.write(to: libraryJSONURL, options: .atomic)
-
         // Copy an embedded LibraryIcon.pdf into Resources if present in app bundle
         if let iconURL = Bundle.main.url(forResource: "LibraryIcon", withExtension: "pdf") {
             let dest = resourcesURL.appendingPathComponent("LibraryIcon.pdf")
@@ -257,8 +248,6 @@ class LibraryManager: ObservableObject {
         try await databaseManager.openDatabase(at: bundleURL)
         
         // Check if we need to migrate from JSON
-        let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
-        let fm = FileManager.default
         
         // Try to load from database first
         do {
@@ -266,7 +255,7 @@ class LibraryManager: ObservableObject {
             let loadedCollections = try await databaseManager.loadCollections()
             
             // If database has data or JSON doesn't exist, we're done
-            if !loadedTracks.isEmpty || !loadedCollections.isEmpty || !fm.fileExists(atPath: libraryJSON.path) {
+            if !loadedTracks.isEmpty || !loadedCollections.isEmpty {
                 self.tracks = loadedTracks
                 self.collections = loadedCollections
                 return
@@ -274,33 +263,7 @@ class LibraryManager: ObservableObject {
         } catch {
             print("LibraryManager: error loading from database: \(error)")
         }
-        
-        // If database is empty and JSON exists, migrate from JSON
-        if fm.fileExists(atPath: libraryJSON.path) {
-            print("LibraryManager: migrating from JSON to SQLite")
-            do {
-                let data = try Data(contentsOf: libraryJSON)
-                let decoder = JSONDecoder()
-                let file = try decoder.decode(LibraryFile.self, from: data)
-                
-                // Save to database
-                try await databaseManager.saveTracks(file.tracks)
-                try await databaseManager.saveCollections(file.collections)
-                
-                // Load from database to confirm
-                self.tracks = try await databaseManager.loadTracks()
-                self.collections = try await databaseManager.loadCollections()
-                
-                // Optionally rename the old JSON file to indicate migration
-                let backupURL = libraryJSON.deletingLastPathComponent().appendingPathComponent("library.json.backup")
-                try? fm.moveItem(at: libraryJSON, to: backupURL)
-                
-                print("LibraryManager: migration complete, \(self.tracks.count) tracks, \(self.collections.count) collections")
-            } catch {
-                print("LibraryManager: error migrating from JSON: \(error)")
-                throw error
-            }
-        }
+
     }
 
     // Task management for saves
