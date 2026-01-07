@@ -4,4 +4,123 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <FileRef
+      location = "container:../MusicPlayer/Assets.xcassets">
+   </FileRef>
+   <Group
+      location = "container:../MusicPlayer/Database"
+      name = "Database">
+      <Group
+         location = "group:Migrations"
+         name = "Migrations">
+      </Group>
+   </Group>
+   <FileRef
+      location = "container:../MusicPlayer/Info.plist">
+   </FileRef>
+   <Group
+      location = "container:../MusicPlayer/LibraryBundleTemplate"
+      name = "LibraryBundleTemplate">
+      <Group
+         location = "group:Contents"
+         name = "Contents">
+         <Group
+            location = "group:Resources"
+            name = "Resources">
+            <FileRef
+               location = "group:LibraryIcon.pdf">
+            </FileRef>
+            <FileRef
+               location = "group:README.txt">
+            </FileRef>
+            <FileRef
+               location = "group:sample-library.json">
+            </FileRef>
+         </Group>
+         <FileRef
+            location = "group:Info.plist">
+         </FileRef>
+      </Group>
+   </Group>
+   <Group
+      location = "container:../MusicPlayer/Managers"
+      name = "Managers">
+      <FileRef
+         location = "group:AudioPlayer.swift">
+      </FileRef>
+      <FileRef
+         location = "group:LibraryManager.swift">
+      </FileRef>
+      <FileRef
+         location = "group:PreferencesManager.swift">
+      </FileRef>
+      <FileRef
+         location = "group:DatabaseManager.swift">
+      </FileRef>
+   </Group>
+   <Group
+      location = "container:../MusicPlayer/Models"
+      name = "Models">
+      <FileRef
+         location = "group:Library.swift">
+      </FileRef>
+      <FileRef
+         location = "group:Track.swift">
+      </FileRef>
+      <FileRef
+         location = "group:Collection.swift">
+      </FileRef>
+      <FileRef
+         location = "group:Album.swift">
+      </FileRef>
+      <FileRef
+         location = "group:Artist.swift">
+      </FileRef>
+      <FileRef
+         location = "group:Playlist.swift">
+      </FileRef>
+   </Group>
+   <FileRef
+      location = "container:../MusicPlayer/MusicPlayer.entitlements">
+   </FileRef>
+   <FileRef
+      location = "container:../MusicPlayer/MusicPlayerApp.swift">
+   </FileRef>
+   <Group
+      location = "container:../MusicPlayer/Views"
+      name = "Views">
+      <FileRef
+         location = "group:PlaybackPreferencesView.swift">
+      </FileRef>
+      <FileRef
+         location = "group:AlbumDetailView.swift">
+      </FileRef>
+      <FileRef
+         location = "group:GeneralPreferencesView.swift">
+      </FileRef>
+      <FileRef
+         location = "group:TopBarView.swift">
+      </FileRef>
+      <FileRef
+         location = "group:SidebarView.swift">
+      </FileRef>
+      <FileRef
+         location = "group:LibraryLocationPicker.swift">
+      </FileRef>
+      <FileRef
+         location = "group:QueueView.swift">
+      </FileRef>
+      <FileRef
+         location = "group:MainContentView.swift">
+      </FileRef>
+      <FileRef
+         location = "group:ContentView.swift">
+      </FileRef>
+      <FileRef
+         location = "group:NowPlayingWidget.swift">
+      </FileRef>
+      <FileRef
+         location = "group:PreferencesWindow.swift">
+      </FileRef>
+   </Group>
 </Workspace>
