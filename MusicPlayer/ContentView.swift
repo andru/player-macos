@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var selectedCollection: Collection? = nil
     @State private var searchText: String = ""
     @State private var showQueue: Bool = false
+    @State private var selectedAlbum: Album? = nil
     
     var body: some View {
         VStack(spacing: 0) {
@@ -27,14 +28,24 @@ struct ContentView: View {
                 
                 Divider()
                 
-                MainContentView(
-                    library: library,
-                    audioPlayer: audioPlayer,
-                    selectedView: $selectedView,
-                    selectedCollection: $selectedCollection,
-                    searchText: $searchText
-                )
-                .environmentObject(preferences)
+                if let album = selectedAlbum {
+                    AlbumDetailView(
+                        album: album,
+                        audioPlayer: audioPlayer,
+                        onBack: {
+                            selectedAlbum = nil
+                        }
+                    )
+                } else {
+                    MainContentView(
+                        library: library,
+                        audioPlayer: audioPlayer,
+                        selectedView: $selectedView,
+                        selectedCollection: $selectedCollection,
+                        searchText: $searchText,
+                        selectedAlbum: $selectedAlbum
+                    ).environmentObject(preferences)
+                }
                 
                 if showQueue {
                     Divider()
