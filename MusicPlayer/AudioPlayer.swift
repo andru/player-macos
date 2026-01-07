@@ -78,7 +78,7 @@ class AudioPlayer: NSObject, ObservableObject {
     func seek(to time: TimeInterval) {
         player?.currentTime = time
         playerState.currentTime = time
-        // Immediately update timestamp so next timer tick will show the new position
+        // Reset timestamp to ensure the new position is published on next throttled update
         lastPublishedTime = Date()
     }
     

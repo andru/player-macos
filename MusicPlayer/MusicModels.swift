@@ -164,8 +164,8 @@ extension Track {
 // MARK: - Album Model
 struct Album: Identifiable, Hashable {
     var id: String {
-        // Use a delimiter unlikely to appear in music metadata to prevent collisions
-        "\(name)::\(albumArtist ?? artist)"
+        // Use shared key generation to ensure consistency
+        Album.makeKey(name: name, albumArtist: albumArtist, artist: artist)
     }
     var name: String
     var artist: String
@@ -183,6 +183,12 @@ struct Album: Identifiable, Hashable {
         self.artworkData = artworkData
         self.tracks = tracks
         self.year = year
+    }
+    
+    /// Generate a stable key for an album based on its name and artist
+    /// Uses :: delimiter to avoid collision issues with hyphens in metadata
+    static func makeKey(name: String, albumArtist: String?, artist: String) -> String {
+        "\(name)::\(albumArtist ?? artist)"
     }
 
     var artwork: NSImage? {
