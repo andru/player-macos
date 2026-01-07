@@ -396,7 +396,6 @@
 			productName = GRDBQuery;
 		};
 /* End XCSwiftPackageProductDependency section */
-/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = AA000001000000000000001 /* Project object */;
 }
