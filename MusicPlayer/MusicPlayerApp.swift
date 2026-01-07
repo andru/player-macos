@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct MusicPlayerApp: App {
     @StateObject private var library = LibraryManager()
-    @StateObject private var preferences = PreferencesManager()
+    @StateObject private var preferences = PreferencesService()
     
     var body: some Scene {
         WindowGroup {
@@ -17,7 +17,9 @@ struct MusicPlayerApp: App {
         }
         
         Settings {
-            PreferencesWindow(library: library, preferences: preferences)
+            PreferencesWindow()
+                .environmentObject(library)
+                .environmentObject(preferences)
         }
     }
 }

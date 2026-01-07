@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PlaybackPreferencesView: View {
-    @ObservedObject var preferences: PreferencesManager
+    @EnvironmentObject var preferences: PreferencesService
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {

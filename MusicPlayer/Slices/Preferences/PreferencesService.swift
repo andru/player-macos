@@ -9,7 +9,7 @@ enum PlaybackBehavior: String, CaseIterable {
 
 // MARK: - Preferences Manager
 @MainActor
-class PreferencesManager: ObservableObject {
+class PreferencesService: ObservableObject {
     @Published var playbackBehavior: PlaybackBehavior {
         didSet {
             UserDefaults.standard.set(playbackBehavior.rawValue, forKey: playbackBehaviorKey)

@@ -1,17 +1,17 @@
 import SwiftUI
 
 struct PreferencesWindow: View {
-    @ObservedObject var library: LibraryManager
-    @ObservedObject var preferences: PreferencesManager
+    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var preferences: PreferencesService
     
     var body: some View {
         TabView {
-            GeneralPreferencesView(library: library)
+            GeneralPreferencesView()
                 .tabItem {
                     Label("General", systemImage: "gear")
                 }
             
-            PlaybackPreferencesView(preferences: preferences)
+            PlaybackPreferencesView()
                 .tabItem {
                     Label("Playback", systemImage: "play.circle")
                 }

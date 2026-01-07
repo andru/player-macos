@@ -3,7 +3,7 @@ import AppKit
 
 struct ContentView: View {
     @EnvironmentObject var library: LibraryManager
-    @EnvironmentObject var preferences: PreferencesManager
+    @EnvironmentObject var preferences: PreferencesService
     @StateObject private var audioPlayer = AudioPlayer()
     @State private var selectedView: LibraryView = .albums
     @State private var selectedCollection: Collection? = nil
@@ -68,5 +68,5 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environmentObject(LibraryManager())
-        .environmentObject(PreferencesManager())
+        .environmentObject(PreferencesService())
 }

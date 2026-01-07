@@ -3,7 +3,7 @@ import SwiftUI
 struct MainContentView: View {
     @ObservedObject var library: LibraryManager
     var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
-    @EnvironmentObject var preferences: PreferencesManager
+    @EnvironmentObject var preferences: PreferencesService
     @Binding var selectedView: LibraryView
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
@@ -133,7 +133,7 @@ struct MainContentView: View {
 
                     AlbumGridItem(album: album, action: {
                         selectedAlbum = album
-                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
+//                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
                     }, audioPlayer: audioPlayer, library: library)
 
                 }

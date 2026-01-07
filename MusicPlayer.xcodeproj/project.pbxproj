@@ -26,8 +26,11 @@
 		64E05A142F0EB9EE004A98C2 /* Database */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Database; sourceTree = "<group>"; };
 		64E05A152F0EB9EE004A98C2 /* Managers */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Managers; sourceTree = "<group>"; };
 		64E05A162F0EB9EE004A98C2 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
-		64E05A172F0EB9EE004A98C2 /* Views */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Views; sourceTree = "<group>"; };
 		64E05A182F0EB9EE004A98C2 /* Repositories */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Repositories; sourceTree = "<group>"; };
+		64E05BF52F0F0052004A98C2 /* Preferences */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Preferences; sourceTree = "<group>"; };
+		64E05BF72F0F03A9004A98C2 /* Library */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Library; sourceTree = "<group>"; };
+		64E05BF82F0F0416004A98C2 /* Player */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Player; sourceTree = "<group>"; };
+		64E05BF92F0F0438004A98C2 /* Frame */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Frame; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,6 +46,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		64E05BF62F0F03A0004A98C2 /* Slices */ = {
+			isa = PBXGroup;
+			children = (
+				64E05BF92F0F0438004A98C2 /* Frame */,
+				64E05BF82F0F0416004A98C2 /* Player */,
+				64E05BF72F0F03A9004A98C2 /* Library */,
+				64E05BF52F0F0052004A98C2 /* Preferences */,
+			);
+			path = Slices;
+			sourceTree = "<group>";
+		};
 		A5000001000000000000001 = {
 			isa = PBXGroup;
 			children = (
@@ -54,11 +68,11 @@
 		A5000002000000000000001 /* MusicPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				64E05BF62F0F03A0004A98C2 /* Slices */,
 				64E05A142F0EB9EE004A98C2 /* Database */,
 				64E05A152F0EB9EE004A98C2 /* Managers */,
 				64E05A162F0EB9EE004A98C2 /* Models */,
 				64E05A182F0EB9EE004A98C2 /* Repositories */,
-				64E05A172F0EB9EE004A98C2 /* Views */,
 				64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */,
 				A2000009000000000000001 /* Assets.xcassets */,
 				64E0579F2F0D9016004A98C2 /* Info.plist */,
@@ -96,8 +110,11 @@
 				64E05A142F0EB9EE004A98C2 /* Database */,
 				64E05A152F0EB9EE004A98C2 /* Managers */,
 				64E05A162F0EB9EE004A98C2 /* Models */,
-				64E05A172F0EB9EE004A98C2 /* Views */,
 				64E05A182F0EB9EE004A98C2 /* Repositories */,
+				64E05BF52F0F0052004A98C2 /* Preferences */,
+				64E05BF72F0F03A9004A98C2 /* Library */,
+				64E05BF82F0F0416004A98C2 /* Player */,
+				64E05BF92F0F0438004A98C2 /* Frame */,
 			);
 			name = MusicPlayer;
 			packageProductDependencies = (
