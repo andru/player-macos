@@ -18,6 +18,7 @@ class LibraryManager: ObservableObject {
     private var isSecurityScoped = false
     private var securityScopedURL: URL? = nil
     private var accessedDirectories: [URL] = []
+    private let databaseManager = DatabaseManager()
     
     // Supported audio file extensions
     private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
@@ -245,32 +246,61 @@ class LibraryManager: ObservableObject {
 
     private func loadLibrary() throws {
         guard let bundleURL = libraryURL else { return }
+        
+        // Try to open/initialize the database
+        try databaseManager.openDatabase(at: bundleURL)
+        
+        // Check if we need to migrate from JSON
         let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
-
         let fm = FileManager.default
-        if !fm.fileExists(atPath: libraryJSON.path) {
-            // No saved library yet: write initial file and keep sample data
-            saveLibrary()
-            return
+        
+        // Try to load from database first
+        do {
+            self.tracks = try databaseManager.loadTracks()
+            self.collections = try databaseManager.loadCollections()
+            
+            // If database has data or JSON doesn't exist, we're done
+            if !self.tracks.isEmpty || !self.collections.isEmpty || !fm.fileExists(atPath: libraryJSON.path) {
+                return
+            }
+        } catch {
+            print("LibraryManager: error loading from database: \(error)")
         }
-
-        let data = try Data(contentsOf: libraryJSON)
-        let decoder = JSONDecoder()
-        let file = try decoder.decode(LibraryFile.self, from: data)
-        self.tracks = file.tracks
-        self.collections = file.collections
+        
+        // If database is empty and JSON exists, migrate from JSON
+        if fm.fileExists(atPath: libraryJSON.path) {
+            print("LibraryManager: migrating from JSON to SQLite")
+            do {
+                let data = try Data(contentsOf: libraryJSON)
+                let decoder = JSONDecoder()
+                let file = try decoder.decode(LibraryFile.self, from: data)
+                
+                // Save to database
+                try databaseManager.saveTracks(file.tracks)
+                try databaseManager.saveCollections(file.collections)
+                
+                // Load from database to confirm
+                self.tracks = try databaseManager.loadTracks()
+                self.collections = try databaseManager.loadCollections()
+                
+                // Optionally rename the old JSON file to indicate migration
+                let backupURL = libraryJSON.deletingLastPathComponent().appendingPathComponent("library.json.backup")
+                try? fm.moveItem(at: libraryJSON, to: backupURL)
+                
+                print("LibraryManager: migration complete, \(self.tracks.count) tracks, \(self.collections.count) collections")
+            } catch {
+                print("LibraryManager: error migrating from JSON: \(error)")
+                throw error
+            }
+        }
     }
 
     func saveLibrary() {
-        guard let bundleURL = libraryURL else { return }
-        let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
-
-        let file = LibraryFile(version: 1, tracks: tracks, collections: collections)
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        guard libraryURL != nil else { return }
+        
         do {
-            let data = try encoder.encode(file)
-            try data.write(to: libraryJSON, options: .atomic)
+            try databaseManager.saveTracks(tracks)
+            try databaseManager.saveCollections(collections)
         } catch {
             print("LibraryManager: failed to save library: \(error)")
         }
