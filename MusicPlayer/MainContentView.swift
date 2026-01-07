@@ -305,58 +305,7 @@ struct AlbumGridItem: View {
             .buttonStyle(.plain)
             .contextMenu {
                 if let audioPlayer = audioPlayer {
-                    Button("Play Now") {
-                        audioPlayer.queueTracks(album.tracks, startPlaying: true)
-                    }
-                    
-                    Button("Next in Queue") {
-                        audioPlayer.addToQueueNext(album.tracks)
-                    }
-                    
-                    Button("End of Queue") {
-                        audioPlayer.addToQueueEnd(album.tracks)
-                    }
-                    
-                    Divider()
-                    
-                    Button("Favourite") {
-                        if let library = library {
-                            album.tracks.forEach { library.toggleFavorite(track: $0) }
-                        }
-                    }
-                    
-                    Button("Add to Collection") {
-                        // TODO: Show collection picker
-                        print("Add to collection")
-                    }
-                    
-                    Button("Add to Playlist") {
-                        // TODO: Show playlist picker
-                        print("Add to playlist")
-                    }
-                    
-                    Divider()
-                    
-                    Button("Remove from Library") {
-                        if let library = library {
-                            album.tracks.forEach { library.removeFromLibrary(track: $0) }
-                        }
-                    }
-                    
-                    Button("Refresh from Source") {
-                        if let library = library {
-                            album.tracks.forEach { library.refreshFromSource(track: $0) }
-                        }
-                    }
-                    
-                    Button("Edit Info") {
-                        if let library = library {
-                            // Edit first track or album info
-                            if let firstTrack = album.tracks.first {
-                                library.editInfo(track: firstTrack)
-                            }
-                        }
-                    }
+                    AlbumContextMenu(album: album, audioPlayer: audioPlayer, library: library)
                 }
             }
             
@@ -445,47 +394,7 @@ struct TrackGridItem: View {
             .buttonStyle(.plain)
             .contextMenu {
                 if let audioPlayer = audioPlayer {
-                    Button("Play Now") {
-                        audioPlayer.playNow(track)
-                    }
-                    
-                    Button("Next in Queue") {
-                        audioPlayer.addToQueueNext(track)
-                    }
-                    
-                    Button("End of Queue") {
-                        audioPlayer.addToQueueEnd(track)
-                    }
-                    
-                    Divider()
-                    
-                    Button("Favourite") {
-                        library?.toggleFavorite(track: track)
-                    }
-                    
-                    Button("Add to Collection") {
-                        // TODO: Show collection picker
-                        print("Add to collection")
-                    }
-                    
-                    Button("Add to Playlist") {
-                        // TODO: Show playlist picker
-                        print("Add to playlist")
-                    }
-                    
-                    Divider()
-                    
-                    Button("Remove from Library") {
-                        library?.removeFromLibrary(track: track)
-                    }
-                    
-                    Button("Refresh from Source") {
-                        library?.refreshFromSource(track: track)
-                    }
-                    
-                    Button("Edit Info") {
-                        library?.editInfo(track: track)
-                    }
+                    TrackContextMenu(track: track, audioPlayer: audioPlayer, library: library)
                 }
             }
             
@@ -548,47 +457,7 @@ struct TrackListRow: View {
         .buttonStyle(.plain)
         .contextMenu {
             if let audioPlayer = audioPlayer {
-                Button("Play Now") {
-                    audioPlayer.playNow(track)
-                }
-                
-                Button("Next in Queue") {
-                    audioPlayer.addToQueueNext(track)
-                }
-                
-                Button("End of Queue") {
-                    audioPlayer.addToQueueEnd(track)
-                }
-                
-                Divider()
-                
-                Button("Favourite") {
-                    library?.toggleFavorite(track: track)
-                }
-                
-                Button("Add to Collection") {
-                    // TODO: Show collection picker
-                    print("Add to collection")
-                }
-                
-                Button("Add to Playlist") {
-                    // TODO: Show playlist picker
-                    print("Add to playlist")
-                }
-                
-                Divider()
-                
-                Button("Remove from Library") {
-                    library?.removeFromLibrary(track: track)
-                }
-                
-                Button("Refresh from Source") {
-                    library?.refreshFromSource(track: track)
-                }
-                
-                Button("Edit Info") {
-                    library?.editInfo(track: track)
-                }
+                TrackContextMenu(track: track, audioPlayer: audioPlayer, library: library)
             }
         }
         .onHover { hovering in
@@ -596,5 +465,110 @@ struct TrackListRow: View {
         }
         
         Divider()
+    }
+}
+
+// MARK: - Context Menu Components
+
+struct AlbumContextMenu: View {
+    let album: Album
+    let audioPlayer: AudioPlayer
+    let library: LibraryManager?
+    
+    var body: some View {
+        Button("Play Now") {
+            audioPlayer.queueTracks(album.tracks, startPlaying: true)
+        }
+        
+        Button("Next in Queue") {
+            audioPlayer.addToQueueNext(album.tracks)
+        }
+        
+        Button("End of Queue") {
+            audioPlayer.addToQueueEnd(album.tracks)
+        }
+        
+        Divider()
+        
+        Button("Favourite") {
+            album.tracks.forEach { library?.toggleFavorite(track: $0) }
+        }
+        
+        Button("Add to Collection") {
+            // TODO: Show collection picker
+            print("Add to collection")
+        }
+        
+        Button("Add to Playlist") {
+            // TODO: Show playlist picker
+            print("Add to playlist")
+        }
+        
+        Divider()
+        
+        Button("Remove from Library") {
+            album.tracks.forEach { library?.removeFromLibrary(track: $0) }
+        }
+        
+        Button("Refresh from Source") {
+            album.tracks.forEach { library?.refreshFromSource(track: $0) }
+        }
+        
+        Button("Edit Info") {
+            // Edit first track or album info
+            if let firstTrack = album.tracks.first {
+                library?.editInfo(track: firstTrack)
+            }
+        }
+    }
+}
+
+struct TrackContextMenu: View {
+    let track: Track
+    let audioPlayer: AudioPlayer
+    let library: LibraryManager?
+    
+    var body: some View {
+        Button("Play Now") {
+            audioPlayer.playNow(track)
+        }
+        
+        Button("Next in Queue") {
+            audioPlayer.addToQueueNext(track)
+        }
+        
+        Button("End of Queue") {
+            audioPlayer.addToQueueEnd(track)
+        }
+        
+        Divider()
+        
+        Button("Favourite") {
+            library?.toggleFavorite(track: track)
+        }
+        
+        Button("Add to Collection") {
+            // TODO: Show collection picker
+            print("Add to collection")
+        }
+        
+        Button("Add to Playlist") {
+            // TODO: Show playlist picker
+            print("Add to playlist")
+        }
+        
+        Divider()
+        
+        Button("Remove from Library") {
+            library?.removeFromLibrary(track: track)
+        }
+        
+        Button("Refresh from Source") {
+            library?.refreshFromSource(track: track)
+        }
+        
+        Button("Edit Info") {
+            library?.editInfo(track: track)
+        }
     }
 }
