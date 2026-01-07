@@ -3,9 +3,11 @@ import SwiftUI
 struct MainContentView: View {
     @ObservedObject var library: LibraryManager
     @ObservedObject var audioPlayer: AudioPlayer
+    @EnvironmentObject var preferences: PreferencesManager
     @Binding var selectedView: LibraryView
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
+    @Binding var selectedAlbum: Album?
     @State private var displayMode: DisplayMode = .grid
     
     // UserDefaults keys for view mode preferences
@@ -128,22 +130,27 @@ struct MainContentView: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
             if selectedView == .albums || selectedCollection != nil {
                 ForEach(filteredAlbums) { album in
+
                     AlbumGridItem(album: album, action: {
-                        audioPlayer.queueTracks(album.tracks, startPlaying: true)
+                        selectedAlbum = album
+                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
                     }, audioPlayer: audioPlayer, library: library)
+
                 }
             } else if selectedView == .artists {
                 ForEach(filteredArtists) { artist in
                     ArtistGridItem(artist: artist) {
 //                        let allTracks = artist.albums.flatMap { $0.tracks }
-//                        audioPlayer.queueTracks(allTracks, startPlaying: true)
+//                        audioPlayer.queueTracks(allTracks, startPlaying: true, behavior: preferences.playbackBehavior)
                     }
                 }
             } else {
                 ForEach(filteredTracks) { track in
+
                     TrackGridItem(track: track, action: {
-                        audioPlayer.queueTracks([track], startPlaying: true)
+                        audioPlayer.queueTracks([track], startPlaying: true, behavior: preferences.playbackBehavior)
                     }, audioPlayer: audioPlayer, library: library)
+
                 }
             }
         }
@@ -175,9 +182,11 @@ struct MainContentView: View {
             
             // Rows
             ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
+
                 TrackListRow(track: track, index: index + 1, action: {
-                    audioPlayer.queueTracks([track], startPlaying: true)
+                    audioPlayer.queueTracks([track], startPlaying: true, behavior: preferences.playbackBehavior)
                 }, audioPlayer: audioPlayer, library: library)
+
             }
         }
     }
@@ -315,10 +324,6 @@ struct AlbumGridItem: View {
                     .lineLimit(1)
                 
                 Text(album.albumArtist ?? album.artist)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                Text(album.albumArtist ?? "-")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
