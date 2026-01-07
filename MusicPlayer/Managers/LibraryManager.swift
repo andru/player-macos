@@ -20,6 +20,9 @@ class LibraryManager: ObservableObject {
     private var accessedDirectories: [URL] = []
     private let databaseManager = DatabaseManager()
     
+    // Task management for proper lifecycle
+    private var initializationTask: Task<Void, Never>?
+    
     // Supported audio file extensions
     private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
 
@@ -71,37 +74,35 @@ class LibraryManager: ObservableObject {
         restoreDirectoryBookmarks()
         
         // Attempt to restore a persisted library location via a security-scoped bookmark
-        if restoreLibraryFromBookmark() {
-            // Successfully restored and loaded
-            return
-        }
-
-        // Try default ~/Music/MusicPlayer.library
-        if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
-            let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
-
-            do {
-                // Ensure the bundle directory exists (create if needed)
-                if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
-                    try createLibraryBundle(at: libraryBundleURL)
-                }
-
-                // Start access and load library contents
-                try startAccessingAndLoad(at: libraryBundleURL)
-
-                // Persist a security-scoped bookmark for next launch
-                persistBookmark(for: libraryBundleURL)
-            } catch {
-                print("LibraryManager: couldn't setup default library: \(error)")
-                // Signal that we need user to select a location
-                DispatchQueue.main.async { [weak self] in
-                    self?.needsLibraryLocationSetup = true
-                }
+        initializationTask = Task { @MainActor in
+            if await restoreLibraryFromBookmark() {
+                // Successfully restored and loaded
+                return
             }
-        } else {
-            // Couldn't determine Music directory; ask the user to pick a location
-            DispatchQueue.main.async { [weak self] in
-                self?.needsLibraryLocationSetup = true
+
+            // Try default ~/Music/MusicPlayer.library
+            if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
+                let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
+
+                do {
+                    // Ensure the bundle directory exists (create if needed)
+                    if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
+                        try createLibraryBundle(at: libraryBundleURL)
+                    }
+
+                    // Start access and load library contents
+                    try await startAccessingAndLoad(at: libraryBundleURL)
+
+                    // Persist a security-scoped bookmark for next launch
+                    persistBookmark(for: libraryBundleURL)
+                } catch {
+                    print("LibraryManager: couldn't setup default library: \(error)")
+                    // Signal that we need user to select a location
+                    self.needsLibraryLocationSetup = true
+                }
+            } else {
+                // Couldn't determine Music directory; ask the user to pick a location
+                self.needsLibraryLocationSetup = true
             }
         }
     }
@@ -170,17 +171,22 @@ class LibraryManager: ObservableObject {
         // Stop previous access if any
         stopAccessingSecurityScopedURLIfNeeded()
 
-        do {
-            if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
-                try createLibraryBundle(at: libraryBundleURL)
-            }
+        // Cancel any ongoing initialization
+        initializationTask?.cancel()
+        
+        initializationTask = Task { @MainActor in
+            do {
+                if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
+                    try createLibraryBundle(at: libraryBundleURL)
+                }
 
-            try startAccessingAndLoad(at: libraryBundleURL)
-            persistBookmark(for: libraryBundleURL)
-            needsLibraryLocationSetup = false
-        } catch {
-            print("LibraryManager: failed to set library location: \(error)")
-            needsLibraryLocationSetup = true
+                try await startAccessingAndLoad(at: libraryBundleURL)
+                persistBookmark(for: libraryBundleURL)
+                needsLibraryLocationSetup = false
+            } catch {
+                print("LibraryManager: failed to set library location: \(error)")
+                needsLibraryLocationSetup = true
+            }
         }
     }
 
@@ -226,14 +232,14 @@ class LibraryManager: ObservableObject {
     }
 
     // MARK: - Load / Save
-    private func startAccessingAndLoad(at bundleURL: URL) throws {
+    private func startAccessingAndLoad(at bundleURL: URL) async throws {
         // Begin security-scoped access if available (sandboxed apps need this for user-chosen locations)
         if bundleURL.startAccessingSecurityScopedResource() {
             isSecurityScoped = true
             securityScopedURL = bundleURL
         }
         self.libraryURL = bundleURL
-        try loadLibrary()
+        try await loadLibrary()
     }
 
     private func stopAccessingSecurityScopedURLIfNeeded() {
@@ -244,11 +250,11 @@ class LibraryManager: ObservableObject {
         }
     }
 
-    private func loadLibrary() throws {
+    private func loadLibrary() async throws {
         guard let bundleURL = libraryURL else { return }
         
         // Try to open/initialize the database
-        try databaseManager.openDatabase(at: bundleURL)
+        try await databaseManager.openDatabase(at: bundleURL)
         
         // Check if we need to migrate from JSON
         let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
@@ -256,11 +262,13 @@ class LibraryManager: ObservableObject {
         
         // Try to load from database first
         do {
-            self.tracks = try databaseManager.loadTracks()
-            self.collections = try databaseManager.loadCollections()
+            let loadedTracks = try await databaseManager.loadTracks()
+            let loadedCollections = try await databaseManager.loadCollections()
             
             // If database has data or JSON doesn't exist, we're done
-            if !self.tracks.isEmpty || !self.collections.isEmpty || !fm.fileExists(atPath: libraryJSON.path) {
+            if !loadedTracks.isEmpty || !loadedCollections.isEmpty || !fm.fileExists(atPath: libraryJSON.path) {
+                self.tracks = loadedTracks
+                self.collections = loadedCollections
                 return
             }
         } catch {
@@ -276,12 +284,12 @@ class LibraryManager: ObservableObject {
                 let file = try decoder.decode(LibraryFile.self, from: data)
                 
                 // Save to database
-                try databaseManager.saveTracks(file.tracks)
-                try databaseManager.saveCollections(file.collections)
+                try await databaseManager.saveTracks(file.tracks)
+                try await databaseManager.saveCollections(file.collections)
                 
                 // Load from database to confirm
-                self.tracks = try databaseManager.loadTracks()
-                self.collections = try databaseManager.loadCollections()
+                self.tracks = try await databaseManager.loadTracks()
+                self.collections = try await databaseManager.loadCollections()
                 
                 // Optionally rename the old JSON file to indicate migration
                 let backupURL = libraryJSON.deletingLastPathComponent().appendingPathComponent("library.json.backup")
@@ -295,14 +303,26 @@ class LibraryManager: ObservableObject {
         }
     }
 
+    // Task management for saves
+    private var saveTask: Task<Void, Never>?
+    
     func saveLibrary() {
         guard libraryURL != nil else { return }
         
-        do {
-            try databaseManager.saveTracks(tracks)
-            try databaseManager.saveCollections(collections)
-        } catch {
-            print("LibraryManager: failed to save library: \(error)")
+        // Cancel any pending save
+        saveTask?.cancel()
+        
+        // Capture current state
+        let tracksToSave = tracks
+        let collectionsToSave = collections
+        
+        saveTask = Task { @MainActor in
+            do {
+                try await databaseManager.saveTracks(tracksToSave)
+                try await databaseManager.saveCollections(collectionsToSave)
+            } catch {
+                print("LibraryManager: failed to save library: \(error)")
+            }
         }
     }
 
@@ -316,7 +336,7 @@ class LibraryManager: ObservableObject {
         }
     }
 
-    private func restoreLibraryFromBookmark() -> Bool {
+    private func restoreLibraryFromBookmark() async -> Bool {
         guard let bookmarkData = UserDefaults.standard.data(forKey: bookmarkKey) else { return false }
         var isStale = false
         do {
@@ -325,7 +345,7 @@ class LibraryManager: ObservableObject {
                 print("LibraryManager: bookmark is stale")
             }
 
-            try startAccessingAndLoad(at: url)
+            try await startAccessingAndLoad(at: url)
             return true
         } catch {
             print("LibraryManager: failed to resolve bookmark: \(error)")
@@ -582,6 +602,9 @@ class LibraryManager: ObservableObject {
     
     // MARK: - Cleanup
     deinit {
+        // Cancel any pending tasks
+        initializationTask?.cancel()
+        saveTask?.cancel()
 //        CoPilot - stop adding these to deinit
 //        stopAccessingSecurityScopedURLIfNeeded()
 //        stopAccessingDirectories()

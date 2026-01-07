@@ -44,7 +44,7 @@ class DatabaseManagerTests: XCTestCase {
     
     func testDatabaseCreation() async throws {
         // When: Opening a database
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         // Then: Database file should exist
         let dbURL = libraryBundleURL
@@ -56,11 +56,11 @@ class DatabaseManagerTests: XCTestCase {
     
     func testDatabaseSchemaCreation() async throws {
         // When: Opening a database
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         // Then: Tables should be created
-        let tracks = try databaseManager.loadTracks()
-        let collections = try databaseManager.loadCollections()
+        let tracks = try await databaseManager.loadTracks()
+        let collections = try await databaseManager.loadCollections()
         
         XCTAssertNotNil(tracks, "Should be able to query tracks table")
         XCTAssertNotNil(collections, "Should be able to query collections table")
@@ -72,7 +72,7 @@ class DatabaseManagerTests: XCTestCase {
     
     func testSaveAndLoadTracks() async throws {
         // Given: An open database
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         let track1 = Track(
             title: "Test Song 1",
@@ -97,10 +97,10 @@ class DatabaseManagerTests: XCTestCase {
         )
         
         // When: Saving tracks
-        try databaseManager.saveTracks([track1, track2])
+        try await databaseManager.saveTracks([track1, track2])
         
         // Then: Tracks should be loadable
-        let loadedTracks = try databaseManager.loadTracks()
+        let loadedTracks = try await databaseManager.loadTracks()
         
         XCTAssertEqual(loadedTracks.count, 2, "Should load 2 tracks")
         
@@ -124,7 +124,7 @@ class DatabaseManagerTests: XCTestCase {
     
     func testSaveTracksWithArtwork() async throws {
         // Given: An open database and a track with artwork
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         let artworkData = Data([0x01, 0x02, 0x03, 0x04])
         let track = Track(
@@ -137,10 +137,10 @@ class DatabaseManagerTests: XCTestCase {
         )
         
         // When: Saving the track
-        try databaseManager.saveTracks([track])
+        try await databaseManager.saveTracks([track])
         
         // Then: Artwork should be preserved
-        let loadedTracks = try databaseManager.loadTracks()
+        let loadedTracks = try await databaseManager.loadTracks()
         
         XCTAssertEqual(loadedTracks.count, 1)
         XCTAssertEqual(loadedTracks.first?.artworkData, artworkData, "Artwork data should be preserved")
@@ -148,7 +148,7 @@ class DatabaseManagerTests: XCTestCase {
     
     func testUpdateTracks() async throws {
         // Given: An open database with an existing track
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         var track = Track(
             title: "Original Title",
@@ -158,15 +158,15 @@ class DatabaseManagerTests: XCTestCase {
             fileURL: URL(fileURLWithPath: "/test/path/song.mp3")
         )
         
-        try databaseManager.saveTracks([track])
+        try await databaseManager.saveTracks([track])
         
         // When: Updating the track
         track.title = "Updated Title"
         track.artist = "Updated Artist"
-        try databaseManager.saveTracks([track])
+        try await databaseManager.saveTracks([track])
         
         // Then: Changes should be persisted
-        let loadedTracks = try databaseManager.loadTracks()
+        let loadedTracks = try await databaseManager.loadTracks()
         
         XCTAssertEqual(loadedTracks.count, 1)
         XCTAssertEqual(loadedTracks.first?.title, "Updated Title")
@@ -175,7 +175,7 @@ class DatabaseManagerTests: XCTestCase {
     
     func testDeleteAllTracksAndSaveNew() async throws {
         // Given: An open database with existing tracks
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         let track1 = Track(
             title: "Track 1",
@@ -185,7 +185,7 @@ class DatabaseManagerTests: XCTestCase {
             fileURL: URL(fileURLWithPath: "/test/path/track1.mp3")
         )
         
-        try databaseManager.saveTracks([track1])
+        try await databaseManager.saveTracks([track1])
         
         // When: Saving with different tracks (which deletes old ones)
         let track2 = Track(
@@ -196,10 +196,10 @@ class DatabaseManagerTests: XCTestCase {
             fileURL: URL(fileURLWithPath: "/test/path/track2.mp3")
         )
         
-        try databaseManager.saveTracks([track2])
+        try await databaseManager.saveTracks([track2])
         
         // Then: Only new track should exist
-        let loadedTracks = try databaseManager.loadTracks()
+        let loadedTracks = try await databaseManager.loadTracks()
         
         XCTAssertEqual(loadedTracks.count, 1)
         XCTAssertEqual(loadedTracks.first?.title, "Track 2")
@@ -209,7 +209,7 @@ class DatabaseManagerTests: XCTestCase {
     
     func testSaveAndLoadCollections() async throws {
         // Given: An open database with some tracks
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         let track1 = Track(
             title: "Track 1",
@@ -227,16 +227,16 @@ class DatabaseManagerTests: XCTestCase {
             fileURL: URL(fileURLWithPath: "/test/track2.mp3")
         )
         
-        try databaseManager.saveTracks([track1, track2])
+        try await databaseManager.saveTracks([track1, track2])
         
         // When: Saving collections
         let collection1 = Collection(name: "My Playlist", trackIDs: [track1.id, track2.id])
         let collection2 = Collection(name: "Empty Playlist", trackIDs: [])
         
-        try databaseManager.saveCollections([collection1, collection2])
+        try await databaseManager.saveCollections([collection1, collection2])
         
         // Then: Collections should be loadable
-        let loadedCollections = try databaseManager.loadCollections()
+        let loadedCollections = try await databaseManager.loadCollections()
         
         XCTAssertEqual(loadedCollections.count, 2)
         
@@ -254,20 +254,20 @@ class DatabaseManagerTests: XCTestCase {
     
     func testCollectionTrackOrder() async throws {
         // Given: An open database with tracks
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         let track1 = Track(title: "A", artist: "Artist", album: "Album", duration: 180, fileURL: URL(fileURLWithPath: "/a.mp3"))
         let track2 = Track(title: "B", artist: "Artist", album: "Album", duration: 180, fileURL: URL(fileURLWithPath: "/b.mp3"))
         let track3 = Track(title: "C", artist: "Artist", album: "Album", duration: 180, fileURL: URL(fileURLWithPath: "/c.mp3"))
         
-        try databaseManager.saveTracks([track1, track2, track3])
+        try await databaseManager.saveTracks([track1, track2, track3])
         
         // When: Creating a collection with specific order
         let collection = Collection(name: "Ordered", trackIDs: [track3.id, track1.id, track2.id])
-        try databaseManager.saveCollections([collection])
+        try await databaseManager.saveCollections([collection])
         
         // Then: Order should be preserved
-        let loadedCollections = try databaseManager.loadCollections()
+        let loadedCollections = try await databaseManager.loadCollections()
         let loadedCollection = loadedCollections.first { $0.id == collection.id }
         
         XCTAssertNotNil(loadedCollection)
@@ -276,23 +276,23 @@ class DatabaseManagerTests: XCTestCase {
     
     func testUpdateCollection() async throws {
         // Given: An open database with a collection
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         let track1 = Track(title: "Track 1", artist: "Artist", album: "Album", duration: 180, fileURL: URL(fileURLWithPath: "/1.mp3"))
         let track2 = Track(title: "Track 2", artist: "Artist", album: "Album", duration: 180, fileURL: URL(fileURLWithPath: "/2.mp3"))
         
-        try databaseManager.saveTracks([track1, track2])
+        try await databaseManager.saveTracks([track1, track2])
         
         var collection = Collection(name: "Original", trackIDs: [track1.id])
-        try databaseManager.saveCollections([collection])
+        try await databaseManager.saveCollections([collection])
         
         // When: Updating the collection
         collection.name = "Updated"
         collection.trackIDs = [track1.id, track2.id]
-        try databaseManager.saveCollections([collection])
+        try await databaseManager.saveCollections([collection])
         
         // Then: Changes should be persisted
-        let loadedCollections = try databaseManager.loadCollections()
+        let loadedCollections = try await databaseManager.loadCollections()
         
         XCTAssertEqual(loadedCollections.count, 1)
         XCTAssertEqual(loadedCollections.first?.name, "Updated")
@@ -328,21 +328,21 @@ class DatabaseManagerTests: XCTestCase {
     
     func testMultipleSaveOperations() async throws {
         // Given: An open database
-        try databaseManager.openDatabase(at: libraryBundleURL)
+        try await databaseManager.openDatabase(at: libraryBundleURL)
         
         // When: Performing multiple save operations
         let track1 = Track(title: "Track 1", artist: "Artist", album: "Album", duration: 180, fileURL: URL(fileURLWithPath: "/1.mp3"))
-        try databaseManager.saveTracks([track1])
+        try await databaseManager.saveTracks([track1])
         
         let track2 = Track(title: "Track 2", artist: "Artist", album: "Album", duration: 180, fileURL: URL(fileURLWithPath: "/2.mp3"))
-        try databaseManager.saveTracks([track1, track2])
+        try await databaseManager.saveTracks([track1, track2])
         
         let collection = Collection(name: "Test", trackIDs: [track1.id])
-        try databaseManager.saveCollections([collection])
+        try await databaseManager.saveCollections([collection])
         
         // Then: All operations should succeed
-        let loadedTracks = try databaseManager.loadTracks()
-        let loadedCollections = try databaseManager.loadCollections()
+        let loadedTracks = try await databaseManager.loadTracks()
+        let loadedCollections = try await databaseManager.loadCollections()
         
         XCTAssertEqual(loadedTracks.count, 2)
         XCTAssertEqual(loadedCollections.count, 1)
@@ -355,12 +355,15 @@ class DatabaseManagerTests: XCTestCase {
         let manager = DatabaseManager()
         
         // When/Then: Attempting to load should throw an error
-        XCTAssertThrowsError(try manager.loadTracks()) { error in
+        do {
+            _ = try await manager.loadTracks()
+            XCTFail("Expected error to be thrown")
+        } catch {
             XCTAssertTrue(error is DatabaseError)
             if case DatabaseError.notOpen = error {
                 // Expected error
             } else {
-                XCTFail("Expected DatabaseError.notOpen")
+                XCTFail("Expected DatabaseError.notOpen, got \(error)")
             }
         }
     }
@@ -372,12 +375,15 @@ class DatabaseManagerTests: XCTestCase {
         let track = Track(title: "Test", artist: "Artist", album: "Album", duration: 180, fileURL: URL(fileURLWithPath: "/test.mp3"))
         
         // When/Then: Attempting to save should throw an error
-        XCTAssertThrowsError(try manager.saveTracks([track])) { error in
+        do {
+            try await manager.saveTracks([track])
+            XCTFail("Expected error to be thrown")
+        } catch {
             XCTAssertTrue(error is DatabaseError)
             if case DatabaseError.notOpen = error {
                 // Expected error
             } else {
-                XCTFail("Expected DatabaseError.notOpen")
+                XCTFail("Expected DatabaseError.notOpen, got \(error)")
             }
         }
     }
