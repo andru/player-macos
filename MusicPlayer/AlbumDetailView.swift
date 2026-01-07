@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AlbumDetailView: View {
     let album: Album
-    @ObservedObject var audioPlayer: AudioPlayer
+    var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
     let onBack: () -> Void
     
     @State private var selectedTrackIDs: Set<UUID> = []

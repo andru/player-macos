@@ -163,7 +163,9 @@ extension Track {
 
 // MARK: - Album Model
 struct Album: Identifiable, Hashable {
-    let id: UUID
+    var id: String {
+        "\(name)-\(albumArtist ?? artist)"
+    }
     var name: String
     var artist: String
     var albumArtist: String?
@@ -172,8 +174,7 @@ struct Album: Identifiable, Hashable {
     var tracks: [Track]
     var year: Int?
     
-    init(id: UUID = UUID(), name: String, artist: String, albumArtist: String? = nil, artworkURL: URL? = nil, artworkData: Data? = nil, tracks: [Track] = [], year: Int? = nil) {
-        self.id = id
+    init(name: String, artist: String, albumArtist: String? = nil, artworkURL: URL? = nil, artworkData: Data? = nil, tracks: [Track] = [], year: Int? = nil) {
         self.name = name
         self.artist = artist
         self.albumArtist = albumArtist

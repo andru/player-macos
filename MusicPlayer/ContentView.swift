@@ -13,7 +13,12 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Top bar with playback controls
-            TopBarView(audioPlayer: audioPlayer, searchText: $searchText, showQueue: $showQueue)
+            TopBarView(
+                playerState: audioPlayer.playerState,
+                audioPlayer: audioPlayer,
+                searchText: $searchText,
+                showQueue: $showQueue
+            )
             
             Divider()
             

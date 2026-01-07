@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct NowPlayingWidget: View {
-    @ObservedObject var audioPlayer: AudioPlayer
+    @ObservedObject var playerState: PlayerState
+    var onSeek: (TimeInterval) -> Void
     
     var body: some View {
-        if let track = audioPlayer.currentTrack {
+        if let track = playerState.currentTrack {
             HStack(spacing: 12) {
                 // Album artwork placeholder
                 if let artwork = track.artwork {
@@ -77,11 +78,11 @@ struct NowPlayingWidget: View {
                     .frame(width: 200, height: 20)
                     
                     HStack {
-                        Text(formatTime(audioPlayer.currentTime))
+                        Text(formatTime(playerState.currentTime))
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text(formatTime(audioPlayer.duration))
+                        Text(formatTime(playerState.duration))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -93,14 +94,14 @@ struct NowPlayingWidget: View {
     }
     
     private func progressWidth(for totalWidth: CGFloat) -> CGFloat {
-        guard audioPlayer.duration > 0 else { return 0 }
-        return totalWidth * CGFloat(audioPlayer.currentTime / audioPlayer.duration)
+        guard playerState.duration > 0 else { return 0 }
+        return totalWidth * CGFloat(playerState.currentTime / playerState.duration)
     }
     
     private func handleSeek(at x: CGFloat, width: CGFloat) {
         let percentage = max(0, min(1, x / width))
-        let newTime = audioPlayer.duration * Double(percentage)
-        audioPlayer.seek(to: newTime)
+        let newTime = playerState.duration * Double(percentage)
+        onSeek(newTime)
     }
     
     private func formatTime(_ time: TimeInterval) -> String {

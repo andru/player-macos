@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MainContentView: View {
     @ObservedObject var library: LibraryManager
-    @ObservedObject var audioPlayer: AudioPlayer
+    var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
     @Binding var selectedView: LibraryView
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
