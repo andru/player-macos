@@ -15,12 +15,7 @@ class SQLiteRepository: TrackRepository, CollectionRepository {
     /// - Throws: DatabaseError if the database cannot be opened
     func openDatabase(at bundleURL: URL) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            queue.async { [weak self] in
-                guard let self = self else {
-                    continuation.resume(throwing: DatabaseError.notOpen)
-                    return
-                }
-                
+            queue.async { [self] in
                 do {
                     self.closeDatabase()
                     
@@ -71,12 +66,7 @@ class SQLiteRepository: TrackRepository, CollectionRepository {
     
     func loadTracks() async throws -> [Track] {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[Track], Error>) in
-            queue.async { [weak self] in
-                guard let self = self else {
-                    continuation.resume(throwing: DatabaseError.notOpen)
-                    return
-                }
-                
+            queue.async { [self] in
                 do {
                     let tracks = try self.loadTracksSync()
                     continuation.resume(returning: tracks)
@@ -89,12 +79,7 @@ class SQLiteRepository: TrackRepository, CollectionRepository {
     
     func saveTracks(_ tracks: [Track]) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            queue.async { [weak self] in
-                guard let self = self else {
-                    continuation.resume(throwing: DatabaseError.notOpen)
-                    return
-                }
-                
+            queue.async { [self] in
                 do {
                     try self.saveTracksSync(tracks)
                     continuation.resume()
@@ -109,12 +94,7 @@ class SQLiteRepository: TrackRepository, CollectionRepository {
     
     func loadCollections() async throws -> [Collection] {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[Collection], Error>) in
-            queue.async { [weak self] in
-                guard let self = self else {
-                    continuation.resume(throwing: DatabaseError.notOpen)
-                    return
-                }
-                
+            queue.async { [self] in
                 do {
                     let collections = try self.loadCollectionsSync()
                     continuation.resume(returning: collections)
@@ -127,12 +107,7 @@ class SQLiteRepository: TrackRepository, CollectionRepository {
     
     func saveCollections(_ collections: [Collection]) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            queue.async { [weak self] in
-                guard let self = self else {
-                    continuation.resume(throwing: DatabaseError.notOpen)
-                    return
-                }
-                
+            queue.async { [self] in
                 do {
                     try self.saveCollectionsSync(collections)
                     continuation.resume()

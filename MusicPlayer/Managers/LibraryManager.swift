@@ -20,6 +20,9 @@ class LibraryManager: ObservableObject {
     private var accessedDirectories: [URL] = []
     private let databaseManager = DatabaseManager()
     
+    // Task management for proper lifecycle
+    private var initializationTask: Task<Void, Never>?
+    
     // Supported audio file extensions
     private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
 
@@ -71,7 +74,7 @@ class LibraryManager: ObservableObject {
         restoreDirectoryBookmarks()
         
         // Attempt to restore a persisted library location via a security-scoped bookmark
-        Task { @MainActor in
+        initializationTask = Task { @MainActor in
             if await restoreLibraryFromBookmark() {
                 // Successfully restored and loaded
                 return
@@ -168,7 +171,10 @@ class LibraryManager: ObservableObject {
         // Stop previous access if any
         stopAccessingSecurityScopedURLIfNeeded()
 
-        Task { @MainActor in
+        // Cancel any ongoing initialization
+        initializationTask?.cancel()
+        
+        initializationTask = Task { @MainActor in
             do {
                 if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
                     try createLibraryBundle(at: libraryBundleURL)
@@ -297,13 +303,23 @@ class LibraryManager: ObservableObject {
         }
     }
 
+    // Task management for saves
+    private var saveTask: Task<Void, Never>?
+    
     func saveLibrary() {
         guard libraryURL != nil else { return }
         
-        Task {
+        // Cancel any pending save
+        saveTask?.cancel()
+        
+        // Capture current state
+        let tracksToSave = tracks
+        let collectionsToSave = collections
+        
+        saveTask = Task { @MainActor in
             do {
-                try await databaseManager.saveTracks(tracks)
-                try await databaseManager.saveCollections(collections)
+                try await databaseManager.saveTracks(tracksToSave)
+                try await databaseManager.saveCollections(collectionsToSave)
             } catch {
                 print("LibraryManager: failed to save library: \(error)")
             }
@@ -586,6 +602,9 @@ class LibraryManager: ObservableObject {
     
     // MARK: - Cleanup
     deinit {
+        // Cancel any pending tasks
+        initializationTask?.cancel()
+        saveTask?.cancel()
 //        CoPilot - stop adding these to deinit
 //        stopAccessingSecurityScopedURLIfNeeded()
 //        stopAccessingDirectories()
