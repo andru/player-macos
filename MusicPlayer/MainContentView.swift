@@ -6,6 +6,7 @@ struct MainContentView: View {
     @Binding var selectedView: LibraryView
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
+    @Binding var selectedAlbum: Album?
     @State private var displayMode: DisplayMode = .grid
     
     // UserDefaults keys for view mode preferences
@@ -129,7 +130,7 @@ struct MainContentView: View {
             if selectedView == .albums || selectedCollection != nil {
                 ForEach(filteredAlbums) { album in
                     AlbumGridItem(album: album) {
-                        audioPlayer.queueTracks(album.tracks, startPlaying: true)
+                        selectedAlbum = album
                     }
                 }
             } else if selectedView == .artists {
@@ -309,10 +310,6 @@ struct AlbumGridItem: View {
                     .lineLimit(1)
                 
                 Text(album.albumArtist ?? album.artist)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                Text(album.albumArtist ?? "-")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)

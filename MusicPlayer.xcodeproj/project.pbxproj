@@ -19,6 +19,7 @@
 		A1000009000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009000000000000001 /* Assets.xcassets */; };
 		A1000010000000000000001 /* NowPlayingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011000000000000001 /* NowPlayingWidget.swift */; };
 		A1000012000000000000001 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012000000000000001 /* QueueView.swift */; };
+		A1000013000000000000001 /* AlbumDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013000000000000001 /* AlbumDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		A2000010000000000000001 /* MusicPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MusicPlayer.entitlements; sourceTree = "<group>"; };
 		A2000011000000000000001 /* NowPlayingWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingWidget.swift; sourceTree = "<group>"; };
 		A2000012000000000000001 /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
+		A2000013000000000000001 /* AlbumDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetailView.swift; sourceTree = "<group>"; };
 		A3000001000000000000001 /* MusicPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MusicPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -67,6 +69,7 @@
 			children = (
 				64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */,
 				64E057C92F0D92BD004A98C2 /* LibraryManager.swift */,
+				A2000013000000000000001 /* AlbumDetailView.swift */,
 				A2000009000000000000001 /* Assets.xcassets */,
 				A2000007000000000000001 /* AudioPlayer.swift */,
 				A2000002000000000000001 /* ContentView.swift */,
@@ -175,6 +178,7 @@
 				A1000007000000000000001 /* AudioPlayer.swift in Sources */,
 				64E057AD2F0D9016004A98C2 /* LibraryLocationPicker.swift in Sources */,
 				A1000012000000000000001 /* QueueView.swift in Sources */,
+				A1000013000000000000001 /* AlbumDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
