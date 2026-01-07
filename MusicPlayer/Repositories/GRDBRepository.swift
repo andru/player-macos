@@ -258,3 +258,28 @@ class GRDBRepository: TrackRepository, CollectionRepository {
         }
     }
 }
+
+// MARK: - Database Errors
+
+enum DatabaseError: Error, LocalizedError {
+    case notOpen
+    case openFailed(message: String)
+    case queryFailed(message: String)
+    case insertFailed(message: String)
+    case executeFailed(message: String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .notOpen:
+            return "Database is not open"
+        case .openFailed(let message):
+            return "Failed to open database: \(message)"
+        case .queryFailed(let message):
+            return "Query failed: \(message)"
+        case .insertFailed(let message):
+            return "Insert failed: \(message)"
+        case .executeFailed(let message):
+            return "Execution failed: \(message)"
+        }
+    }
+}
