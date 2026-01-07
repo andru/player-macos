@@ -200,7 +200,8 @@
 				A1000015000000000000001 /* GeneralPreferencesView.swift in Sources */,
 				A1000016000000000000001 /* PlaybackPreferencesView.swift in Sources */,
 				A1000013000000000000001 /* AlbumDetailView.swift in Sources */,
-			);
+							B8D420A315EE4680B3451D59 /* DatabaseManagerTests.swift in Sources */,
+);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
