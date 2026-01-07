@@ -29,20 +29,20 @@ class PlayerState: ObservableObject {
 
 **Problem**: The timer was updating `currentTime` every 0.1 seconds, causing SwiftUI to redraw progress indicators 10 times per second.
 
-**Solution**: Implemented throttling in the timer callback:
+**Solution**: Implemented timestamp-based throttling in the timer callback:
 ```swift
-private var lastTimeUpdate: TimeInterval = 0
+private var lastPublishedTime: Date = Date()
 private let timeUpdateThrottle: TimeInterval = 0.5
 
 private func startTimer() {
     timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
         guard let self = self, let player = self.player else { return }
-        let currentTime = player.currentTime
         
-        // Throttle updates: only publish if enough time has passed
-        if abs(currentTime - self.lastTimeUpdate) >= self.timeUpdateThrottle {
-            self.playerState.currentTime = currentTime
-            self.lastTimeUpdate = currentTime
+        // Throttle updates based on time elapsed since last publish
+        let now = Date()
+        if now.timeIntervalSince(self.lastPublishedTime) >= self.timeUpdateThrottle {
+            self.playerState.currentTime = player.currentTime
+            self.lastPublishedTime = now
         }
     }
 }
@@ -51,17 +51,18 @@ private func startTimer() {
 **Benefits**:
 - Reduces SwiftUI updates from 10 per second to 2 per second
 - Still maintains smooth appearance for users
+- Timestamp-based approach avoids issues with seek operations
 - Significantly reduces CPU usage during playback
 
 ### 3. Stable Album IDs
 
 **Problem**: Albums used UUID for their ID, which meant different album instances representing the same album had different IDs, causing SwiftUI to treat them as different items.
 
-**Solution**: Changed Album.id to be computed from album name and artist:
+**Solution**: Changed Album.id to be computed from album name and artist using `::` delimiter:
 ```swift
 struct Album: Identifiable, Hashable {
     var id: String {
-        "\(name)-\(albumArtist ?? artist)"
+        "\(name)::\(albumArtist ?? artist)"
     }
     // ... rest of properties
 }
@@ -72,6 +73,7 @@ struct Album: Identifiable, Hashable {
 - SwiftUI can better optimize list/grid rendering
 - Prevents unnecessary view recreations when album lists update
 - Matches the key already used by LibraryManager for grouping albums
+- Uses `::` delimiter to avoid collision issues with hyphens in album/artist names
 
 ### 4. View Hierarchy Optimization
 
