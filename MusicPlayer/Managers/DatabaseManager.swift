@@ -468,7 +468,12 @@ class DatabaseManager {
     }
     
     deinit {
-        closeDatabase()
+        Task { @MainActor [db] in
+            if let db = db {
+                sqlite3_close(db)
+                self.db = nil
+            }
+        }
     }
 }
 
