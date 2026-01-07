@@ -117,8 +117,23 @@ class AudioPlayer: NSObject, ObservableObject {
         }
     }
     
+    func addToQueueNext(_ tracks: [Track]) {
+        if queue.isEmpty || currentQueueIndex == -1 {
+            // If queue is empty, just add to queue
+            queue.append(contentsOf: tracks.map { QueueItem(track: $0, hasBeenPlayed: false) })
+        } else {
+            let insertIndex = currentQueueIndex + 1
+            let queueItems = tracks.map { QueueItem(track: $0, hasBeenPlayed: false) }
+            queue.insert(contentsOf: queueItems, at: insertIndex)
+        }
+    }
+    
     func addToQueueEnd(_ track: Track) {
         queue.append(QueueItem(track: track, hasBeenPlayed: false))
+    }
+    
+    func addToQueueEnd(_ tracks: [Track]) {
+        queue.append(contentsOf: tracks.map { QueueItem(track: $0, hasBeenPlayed: false) })
     }
     
     func playNow(_ track: Track) {
@@ -129,9 +144,8 @@ class AudioPlayer: NSObject, ObservableObject {
             play(track: track)
         } else {
             // Add track to queue after current position and play it immediately
-            let insertIndex = currentQueueIndex + 1
-            queue.insert(QueueItem(track: track, hasBeenPlayed: false), at: insertIndex)
-            currentQueueIndex = insertIndex
+            addToQueueNext(track)
+            currentQueueIndex += 1
             play(track: track)
         }
     }

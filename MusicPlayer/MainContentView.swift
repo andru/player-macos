@@ -310,11 +310,11 @@ struct AlbumGridItem: View {
                     }
                     
                     Button("Next in Queue") {
-                        album.tracks.forEach { audioPlayer.addToQueueNext($0) }
+                        audioPlayer.addToQueueNext(album.tracks)
                     }
                     
                     Button("End of Queue") {
-                        album.tracks.forEach { audioPlayer.addToQueueEnd($0) }
+                        audioPlayer.addToQueueEnd(album.tracks)
                     }
                     
                     Divider()
