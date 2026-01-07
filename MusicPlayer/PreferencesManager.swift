@@ -5,13 +5,6 @@ import SwiftUI
 enum PlaybackBehavior: String, CaseIterable {
     case clearAndPlay = "Clear queue and play immediately"
     case appendToQueue = "Append to end of queue"
-    
-    var userDefaultsKey: String {
-        switch self {
-        case .clearAndPlay: return "clearAndPlay"
-        case .appendToQueue: return "appendToQueue"
-        }
-    }
 }
 
 // MARK: - Preferences Manager
