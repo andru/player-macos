@@ -7,22 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		64E057AD2F0D9016004A98C2 /* LibraryLocationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E057A72F0D9016004A98C2 /* LibraryLocationPicker.swift */; };
-		64E057CE2F0D92BD004A98C2 /* LibraryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E057C92F0D92BD004A98C2 /* LibraryManager.swift */; };
-		64E0588F2F0E7539004A98C2 /* PreferencesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E0588E2F0E7539004A98C2 /* PreferencesManager.swift */; };
 		A1000001000000000000001 /* MusicPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001000000000000001 /* MusicPlayerApp.swift */; };
 		A1000009000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009000000000000001 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		64E0579F2F0D9016004A98C2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		64E057A72F0D9016004A98C2 /* LibraryLocationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryLocationPicker.swift; sourceTree = "<group>"; };
-		64E057C92F0D92BD004A98C2 /* LibraryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryManager.swift; sourceTree = "<group>"; };
-		64E0588E2F0E7539004A98C2 /* PreferencesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesManager.swift; sourceTree = "<group>"; };
+		64E059642F0EA64C004A98C2 /* MusicPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MusicPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A2000001000000000000001 /* MusicPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayerApp.swift; sourceTree = "<group>"; };
 		A2000009000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A2000010000000000000001 /* MusicPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MusicPlayer.entitlements; sourceTree = "<group>"; };
-		A3000001000000000000001 /* MusicPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = MusicPlayer.app; path = "/Users/andru/Projects/vibez/music-player/player-macos/build/Debug/MusicPlayer.app"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -68,14 +62,13 @@
 			isa = PBXGroup;
 			children = (
 				A5000002000000000000001 /* MusicPlayer */,
+				64E059642F0EA64C004A98C2 /* MusicPlayer.app */,
 			);
 			sourceTree = "<group>";
 		};
 		A5000002000000000000001 /* MusicPlayer */ = {
 			isa = PBXGroup;
 			children = (
-				64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */,
-				64E057C92F0D92BD004A98C2 /* LibraryManager.swift */,
 				64E059172F0E9714004A98C2 /* Managers */,
 				A2000009000000000000001 /* Assets.xcassets */,
 				64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */,
@@ -111,7 +104,7 @@
 			);
 			name = MusicPlayer;
 			productName = MusicPlayer;
-			productReference = A3000001000000000000001 /* MusicPlayer.app */;
+			productReference = 64E059642F0EA64C004A98C2 /* MusicPlayer.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -164,22 +157,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000001000000000000001 /* MusicPlayerApp.swift in Sources */,
-				A1000002000000000000001 /* ContentView.swift in Sources */,
-				A1000003000000000000001 /* SidebarView.swift in Sources */,
-				A1000004000000000000001 /* TopBarView.swift in Sources */,
-				64E0588F2F0E7539004A98C2 /* PreferencesManager.swift in Sources */,
-				A1000010000000000000001 /* NowPlayingWidget.swift in Sources */,
-				64E057CE2F0D92BD004A98C2 /* LibraryManager.swift in Sources */,
-				A1000005000000000000001 /* MainContentView.swift in Sources */,
-				A1000006000000000000001 /* MusicModels.swift in Sources */,
-				A1000007000000000000001 /* AudioPlayer.swift in Sources */,
-				64E057AD2F0D9016004A98C2 /* LibraryLocationPicker.swift in Sources */,
-				A1000012000000000000001 /* QueueView.swift in Sources */,
-				A1000013000000000000001 /* AlbumDetailView.swift in Sources */,
-				A1000014000000000000001 /* PreferencesWindow.swift in Sources */,
-				A1000015000000000000001 /* GeneralPreferencesView.swift in Sources */,
-				A1000016000000000000001 /* PlaybackPreferencesView.swift in Sources */,
-				A1000013000000000000001 /* AlbumDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -331,14 +331,8 @@ class DatabaseManager {
         try execute("BEGIN TRANSACTION")
         
         do {
-            // Clear existing collections
-            try execute("DELETE FROM collections")
-            try execute("DELETE FROM collection_tracks")
+            //update existing collections
             
-            // Insert all collections
-            for collection in collections {
-                try insertCollection(collection)
-            }
             
             try execute("COMMIT")
         } catch {
@@ -448,6 +442,124 @@ class DatabaseManager {
         }
         
         return trackIDs
+    }
+    
+    func updateCollection(_ collection: Collection, tracks: [Track]) throws {
+        guard db != nil else { throw DatabaseError.notOpen }
+        
+        try execute("BEGIN TRANSACTION")
+        do {
+            // Update collection name
+            let updateCollectionQuery = "UPDATE collections SET name = ? WHERE id = ?"
+            var stmtColl: OpaquePointer?
+            guard sqlite3_prepare_v2(db, updateCollectionQuery, -1, &stmtColl, nil) == SQLITE_OK else {
+                let errmsg = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.queryFailed(message: errmsg)
+            }
+            defer { sqlite3_finalize(stmtColl) }
+            
+            sqlite3_bind_text(stmtColl, 1, collection.name, -1, nil)
+            sqlite3_bind_text(stmtColl, 2, collection.id.uuidString, -1, nil)
+            if sqlite3_step(stmtColl) != SQLITE_DONE {
+                let errmsg = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.executeFailed(message: errmsg)
+            }
+            
+            // Remove existing associations for this collection
+            let deleteAssocQuery = "DELETE FROM collection_tracks WHERE collection_id = ?"
+            var stmtDel: OpaquePointer?
+            guard sqlite3_prepare_v2(db, deleteAssocQuery, -1, &stmtDel, nil) == SQLITE_OK else {
+                let errmsg = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.queryFailed(message: errmsg)
+            }
+            defer { sqlite3_finalize(stmtDel) }
+            
+            sqlite3_bind_text(stmtDel, 1, collection.id.uuidString, -1, nil)
+            if sqlite3_step(stmtDel) != SQLITE_DONE {
+                let errmsg = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.executeFailed(message: errmsg)
+            }
+            
+            // Insert new associations (preserve order)
+            for (index, trackID) in collection.trackIDs.enumerated() {
+                try insertCollectionTrack(collectionID: collection.id, trackID: trackID, position: index)
+            }
+            
+            // Prepare track update statement
+            let updateTrackQuery = """
+                UPDATE tracks SET title = ?, artist = ?, album = ?, album_artist = ?, duration = ?,
+                                  file_url = ?, artwork_url = ?, artwork_data = ?, genre = ?, year = ?, track_number = ?
+                WHERE id = ?
+            """
+            var stmtTrack: OpaquePointer?
+            guard sqlite3_prepare_v2(db, updateTrackQuery, -1, &stmtTrack, nil) == SQLITE_OK else {
+                let errmsg = String(cString: sqlite3_errmsg(db))
+                throw DatabaseError.queryFailed(message: errmsg)
+            }
+            defer { sqlite3_finalize(stmtTrack) }
+            
+            for track in tracks {
+                sqlite3_reset(stmtTrack)
+                sqlite3_clear_bindings(stmtTrack)
+                
+                sqlite3_bind_text(stmtTrack, 1, track.title, -1, nil)
+                sqlite3_bind_text(stmtTrack, 2, track.artist, -1, nil)
+                sqlite3_bind_text(stmtTrack, 3, track.album, -1, nil)
+                
+                if let albumArtist = track.albumArtist {
+                    sqlite3_bind_text(stmtTrack, 4, albumArtist, -1, nil)
+                } else {
+                    sqlite3_bind_null(stmtTrack, 4)
+                }
+                
+                sqlite3_bind_double(stmtTrack, 5, track.duration)
+                sqlite3_bind_text(stmtTrack, 6, track.fileURL.path, -1, nil)
+                
+                if let artworkURL = track.artworkURL {
+                    sqlite3_bind_text(stmtTrack, 7, artworkURL.path, -1, nil)
+                } else {
+                    sqlite3_bind_null(stmtTrack, 7)
+                }
+                
+                if let artworkData = track.artworkData {
+                    artworkData.withUnsafeBytes { bytes in
+                        sqlite3_bind_blob(stmtTrack, 8, bytes.baseAddress, Int32(artworkData.count), nil)
+                    }
+                } else {
+                    sqlite3_bind_null(stmtTrack, 8)
+                }
+                
+                if let genre = track.genre {
+                    sqlite3_bind_text(stmtTrack, 9, genre, -1, nil)
+                } else {
+                    sqlite3_bind_null(stmtTrack, 9)
+                }
+                
+                if let year = track.year {
+                    sqlite3_bind_int(stmtTrack, 10, Int32(year))
+                } else {
+                    sqlite3_bind_null(stmtTrack, 10)
+                }
+                
+                if let trackNumber = track.trackNumber {
+                    sqlite3_bind_int(stmtTrack, 11, Int32(trackNumber))
+                } else {
+                    sqlite3_bind_null(stmtTrack, 11)
+                }
+                
+                sqlite3_bind_text(stmtTrack, 12, track.id.uuidString, -1, nil)
+                
+                if sqlite3_step(stmtTrack) != SQLITE_DONE {
+                    let errmsg = String(cString: sqlite3_errmsg(db))
+                    throw DatabaseError.executeFailed(message: errmsg)
+                }
+            }
+            
+            try execute("COMMIT")
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
     }
     
     // MARK: - Helper Methods

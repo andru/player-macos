@@ -7,6 +7,8 @@ class LibraryManager: ObservableObject {
     @Published var tracks: [Track] = []
     @Published var collections: [Collection] = []
 
+    
+    
     // UI / setup state
     @Published var needsLibraryLocationSetup = false
     @Published var libraryURL: URL? = nil
@@ -20,6 +22,9 @@ class LibraryManager: ObservableObject {
     
     // Supported audio file extensions
     private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
+    
+    private let databaseManager = DatabaseManager()
+
 
     // MARK: - Derived views
     var albums: [Album] {
@@ -108,22 +113,20 @@ class LibraryManager: ObservableObject {
     // MARK: - Public API
     func addTrack(_ track: Track) {
         tracks.append(track)
-        saveLibrary()
+        try? databaseManager.saveTracks(tracks)
     }
 
     func removeTrack(_ track: Track) {
         tracks.removeAll { $0.id == track.id }
-        saveLibrary()
+        try? databaseManager.saveTracks(tracks)
     }
 
     func addCollection(_ collection: Collection) {
         collections.append(collection)
-        saveLibrary()
     }
 
     func removeCollection(_ collection: Collection) {
         collections.removeAll { $0.id == collection.id }
-        saveLibrary()
     }
     
     // MARK: - Context Menu Actions
@@ -143,7 +146,7 @@ class LibraryManager: ObservableObject {
             }
         }
         collections[index] = updatedCollection
-        saveLibrary()
+        //todo - persist to disk
     }
     
     func removeFromLibrary(track: Track) {
@@ -237,23 +240,7 @@ class LibraryManager: ObservableObject {
 
     private func loadLibrary() throws {
         guard let bundleURL = libraryURL else { return }
-<<<<<<< Updated upstream:MusicPlayer/LibraryManager.swift
-        let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
 
-        let fm = FileManager.default
-        if !fm.fileExists(atPath: libraryJSON.path) {
-            // No saved library yet: write initial file and keep sample data
-            saveLibrary()
-            return
-        }
-
-        let data = try Data(contentsOf: libraryJSON)
-        let decoder = JSONDecoder()
-        let file = try decoder.decode(LibraryFile.self, from: data)
-        self.tracks = file.tracks
-        self.collections = file.collections
-=======
-        
         // Try to open/initialize the database
         try databaseManager.openDatabase(at: bundleURL)
         
@@ -270,23 +257,8 @@ class LibraryManager: ObservableObject {
             print("LibraryManager: error loading from database: \(error)")
         }
         
->>>>>>> Stashed changes:MusicPlayer/Managers/LibraryManager.swift
     }
 
-    func saveLibrary() {
-        guard let bundleURL = libraryURL else { return }
-        let libraryJSON = bundleURL.appendingPathComponent("Contents/Resources/").appendingPathComponent(libraryFileName)
-
-        let file = LibraryFile(version: 1, tracks: tracks, collections: collections)
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        do {
-            let data = try encoder.encode(file)
-            try data.write(to: libraryJSON, options: .atomic)
-        } catch {
-            print("LibraryManager: failed to save library: \(error)")
-        }
-    }
 
     // MARK: - Bookmarks
     private func persistBookmark(for url: URL) {
@@ -367,7 +339,7 @@ class LibraryManager: ObservableObject {
                 tracks.append(track)
             }
         }
-        saveLibrary()
+        // todo - persist to disk
     }
     
     func importDirectory(url: URL) async {
@@ -391,7 +363,7 @@ class LibraryManager: ObservableObject {
                 tracks.append(track)
             }
         }
-        saveLibrary()
+        // todo - persist to disk
     }
     
     private func findMusicFiles(in directory: URL) -> [URL] {
@@ -435,7 +407,7 @@ class LibraryManager: ObservableObject {
 
         // Load duration and metadata using availability-safe helper
         let (duration, metadataItems) = await loadDurationAndMetadata(for: asset)
-        var albumArtist: String? = await extractAlbumArtist(from: metadataItems)
+        let albumArtist: String? = await extractAlbumArtist(from: metadataItems)
 
         for item in metadataItems {
             // Prefer modern async loading on macOS 13+
