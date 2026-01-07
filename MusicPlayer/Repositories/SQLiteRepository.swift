@@ -7,7 +7,11 @@ class SQLiteRepository: TrackRepository, CollectionRepository {
     private var db: OpaquePointer?
     private let dbFileName = "library.db"
     private let queue = DispatchQueue(label: "com.musicplayer.sqlite", qos: .userInitiated)
+    private let queueKey = DispatchSpecificKey<Int>()
     
+    init() {
+        queue.setSpecific(key: queueKey, value: 1)
+    }
     // MARK: - Initialization
     
     /// Open database connection at the specified library bundle URL
@@ -27,8 +31,10 @@ class SQLiteRepository: TrackRepository, CollectionRepository {
                     let result = sqlite3_open(dbURL.path, &db)
                     
                     guard result == SQLITE_OK else {
-                        let errmsg = String(cString: sqlite3_errmsg(db))
-                        sqlite3_close(db)
+                        let errmsg = db != nil ? String(cString: sqlite3_errmsg(db)) : "Unable to open db"
+                        if db != nil {
+                            sqlite3_close(db)
+                        }
                         throw DatabaseError.openFailed(message: errmsg)
                     }
                     
@@ -54,10 +60,18 @@ class SQLiteRepository: TrackRepository, CollectionRepository {
     
     /// Close the database connection
     func closeDatabase() {
-        queue.sync {
+        // If already on the repository queue, perform inline to avoid deadlock
+        if DispatchQueue.getSpecific(key: queueKey) == 1 {
             if let db = db {
                 sqlite3_close(db)
                 self.db = nil
+            }
+        } else {
+            queue.sync {
+                if let db = db {
+                    sqlite3_close(db)
+                    self.db = nil
+                }
             }
         }
     }

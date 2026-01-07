@@ -92,8 +92,8 @@
 				64E05A142F0EB9EE004A98C2 /* Database */,
 				64E05A152F0EB9EE004A98C2 /* Managers */,
 				64E05A162F0EB9EE004A98C2 /* Models */,
-				64E05A182F0EB9EE004A98C2 /* Repositories */,
 				64E05A172F0EB9EE004A98C2 /* Views */,
+				64E05A182F0EB9EE004A98C2 /* Repositories */,
 			);
 			name = MusicPlayer;
 			productName = MusicPlayer;
@@ -124,6 +124,9 @@
 				Base,
 			);
 			mainGroup = A5000001000000000000001;
+			packageReferences = (
+				64E05AD72F0EC642004A98C2 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+			);
 			productRefGroup = A5000003000000000000001 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -356,6 +359,17 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		64E05AD72F0EC642004A98C2 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 7.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = AA000001000000000000001 /* Project object */;
 }
