@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		64E05B1D2F0ECF97004A98C2 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 64E05B1B2F0EC705004A98C2 /* GRDB */; };
+		64E05B1E2F0ECF97004A98C2 /* GRDBQuery in Frameworks */ = {isa = PBXBuildFile; productRef = 64E05B1C2F0EC8A8004A98C2 /* GRDBQuery */; };
 		A1000001000000000000001 /* MusicPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001000000000000001 /* MusicPlayerApp.swift */; };
 		A1000009000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009000000000000001 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -33,6 +35,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64E05B1E2F0ECF97004A98C2 /* GRDBQuery in Frameworks */,
+				64E05B1D2F0ECF97004A98C2 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -96,6 +100,10 @@
 				64E05A182F0EB9EE004A98C2 /* Repositories */,
 			);
 			name = MusicPlayer;
+			packageProductDependencies = (
+				64E05B1B2F0EC705004A98C2 /* GRDB */,
+				64E05B1C2F0EC8A8004A98C2 /* GRDBQuery */,
+			);
 			productName = MusicPlayer;
 			productReference = A3000001000000000000001 /* MusicPlayer.app */;
 			productType = "com.apple.product-type.application";
@@ -221,6 +229,7 @@
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -277,6 +286,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -367,7 +377,7 @@
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
 			requirement = {
 				kind = exactVersion;
-				version = 7.9.0;
+				version = 7.8.0;
 			};
 		};
 		64E05B1A2F0EC8A8004A98C2 /* XCRemoteSwiftPackageReference "GRDBQuery" */ = {
@@ -379,6 +389,19 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		64E05B1B2F0EC705004A98C2 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64E05B192F0EC705004A98C2 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		64E05B1C2F0EC8A8004A98C2 /* GRDBQuery */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64E05B1A2F0EC8A8004A98C2 /* XCRemoteSwiftPackageReference "GRDBQuery" */;
+			productName = GRDBQuery;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AA000001000000000000001 /* Project object */;
 }

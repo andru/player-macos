@@ -3,10 +3,10 @@ import Foundation
 /// Facade for database operations, providing a simple interface to the underlying repository
 /// This bridges the old @MainActor DatabaseManager API with the new async repository pattern
 class DatabaseManager {
-    private let repository: SQLiteRepository
+    private let repository: GRDBRepository
     
     init() {
-        self.repository = SQLiteRepository()
+        self.repository = GRDBRepository()
     }
     
     /// Open database connection at the specified library bundle URL

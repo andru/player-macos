@@ -2,7 +2,7 @@
 
 ## Overview
 
-The MusicPlayer application has migrated from JSON-based storage to SQLite with versioned schema migrations.
+The MusicPlayer application uses GRDB for database persistence with built-in versioned schema migrations.
 
 ## Database Location
 
@@ -11,11 +11,14 @@ The database file is located at:
 ~/Music/MusicPlayer.library/Contents/Resources/library.db
 ```
 
-## Schema Version
+## Migration System
 
-The current schema version is **1**.
+GRDB provides a built-in migration system using DatabaseMigrator:
 
-Schema version is tracked using SQLite's `PRAGMA user_version` to ensure migrations run only when needed.
+- **Automatic Version Tracking**: Migrations are tracked by name
+- **Idempotent**: Each migration runs only once
+- **Transactional**: All migrations run in a transaction for safety
+- **Declarative**: Schema defined using Swift DSL
 
 ## Migration Process
 
@@ -90,29 +93,29 @@ For optimal query performance, the following indexes are created:
 
 ## Adding New Migrations
 
-To add a new schema migration (e.g., version 2):
+To add a new schema migration:
 
-1. Open `DatabaseManager.swift`
-2. Locate the `runMigrations()` method
-3. Add a new migration block:
-
-```swift
-if currentVersion < 2 {
-    try migration_v2()
-    try setDatabaseVersion(2)
-}
-```
-
-4. Implement the migration method:
+1. Open `GRDBRepository.swift`
+2. Add a new migration to the migrator:
 
 ```swift
-private func migration_v2() throws {
+migrator.registerMigration("v2") { db in
     // Example: Add a new column
-    try execute("ALTER TABLE tracks ADD COLUMN play_count INTEGER DEFAULT 0")
+    try db.alter(table: "tracks") { t in
+        t.add(column: "playCount", .integer).defaults(to: 0)
+    }
 }
 ```
 
-5. Update the documentation to reflect the new schema version
+3. Update the documentation to reflect the new schema
+
+### Migration Best Practices
+
+- Give migrations descriptive names (e.g., "add_play_count", "create_playlists_table")
+- Migrations run in registration order
+- Always use transactions (automatic with GRDB)
+- Test migrations with sample data
+- Never modify existing migrations after release
 
 ## Rollback
 

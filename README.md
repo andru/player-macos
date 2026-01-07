@@ -47,7 +47,7 @@ A native macOS music player and library manager built with Swift and SwiftUI.
   - Organize music by Artists, Albums, and Songs
   - Create custom collections (playlists)
   - Search across all tracks, artists, and albums
-  - SQLite-based storage with versioned schema migrations
+  - GRDB-based storage with built-in migrations
   - Automatic migration from legacy JSON format
   - Persistent library storage in .library bundle
   - Attempts to use ~/Music by default, or prompts for location if restricted
@@ -166,7 +166,7 @@ The app follows the MVVM (Model-View-ViewModel) pattern with SwiftUI:
 
 - **AudioPlayer:** Manages audio playback using AVAudioPlayer
 - **LibraryManager:** Manages the music library, collections, and metadata
-- **DatabaseManager:** Handles SQLite database operations with versioned migrations
+- **DatabaseManager:** Handles GRDB database operations with built-in migrations
 - **ContentView:** Main coordinator connecting all views
 - **SidebarView:** Navigation sidebar with library views and collections
 - **TopBarView:** Playback controls and track information
@@ -174,7 +174,7 @@ The app follows the MVVM (Model-View-ViewModel) pattern with SwiftUI:
 
 ## Database Storage
 
-The application uses SQLite for persistent storage with versioned schema migrations.
+The application uses GRDB for persistent storage with built-in migrations and type-safe queries.
 
 ### Migration from JSON
 
