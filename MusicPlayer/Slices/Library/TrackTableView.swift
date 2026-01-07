@@ -9,17 +9,13 @@ struct TrackTableColumn: Identifiable {
     let width: CGFloat?
     let minWidth: CGFloat?
     let maxWidth: CGFloat?
-    let sortKeyPath: KeyPath<Track, String>?
-    let sortKeyPathDouble: KeyPath<Track, Double>?
     
-    init(id: String, title: String, width: CGFloat? = nil, minWidth: CGFloat? = nil, maxWidth: CGFloat? = nil, sortKeyPath: KeyPath<Track, String>? = nil, sortKeyPathDouble: KeyPath<Track, Double>? = nil) {
+    init(id: String, title: String, width: CGFloat? = nil, minWidth: CGFloat? = nil, maxWidth: CGFloat? = nil) {
         self.id = id
         self.title = title
         self.width = width
         self.minWidth = minWidth
         self.maxWidth = maxWidth
-        self.sortKeyPath = sortKeyPath
-        self.sortKeyPathDouble = sortKeyPathDouble
     }
 }
 
@@ -34,21 +30,19 @@ struct TrackTableView: View {
     // Column configuration - customizable by parent
     var columns: [TrackTableColumn] = [
         TrackTableColumn(id: "number", title: "#", width: 40, minWidth: 40, maxWidth: 60),
-        TrackTableColumn(id: "title", title: "Title", minWidth: 100, sortKeyPath: \.title),
-        TrackTableColumn(id: "artist", title: "Artist", width: 200, minWidth: 100, sortKeyPath: \.artist),
-        TrackTableColumn(id: "album", title: "Album", width: 200, minWidth: 100, sortKeyPath: \.album),
-        TrackTableColumn(id: "duration", title: "Duration", width: 80, minWidth: 60, maxWidth: 100, sortKeyPathDouble: \.duration)
+        TrackTableColumn(id: "title", title: "Title", minWidth: 100),
+        TrackTableColumn(id: "artist", title: "Artist", width: 200, minWidth: 100),
+        TrackTableColumn(id: "album", title: "Album", width: 200, minWidth: 100),
+        TrackTableColumn(id: "duration", title: "Duration", width: 80, minWidth: 60, maxWidth: 100)
     ]
     
-    // State for selection and sorting
+    // State for selection
     @State private var selection = Set<Track.ID>()
-    @State private var sortOrder = [KeyPathComparator(\Track.title)]
     
     var body: some View {
         DoubleClickableTable(
             tracks: filteredTracks,
             selection: $selection,
-            sortOrder: $sortOrder,
             columns: columns,
             onDoubleClick: handleDoubleClick,
             library: library,
@@ -72,7 +66,6 @@ struct TrackTableView: View {
 private struct DoubleClickableTable: View {
     let tracks: [Track]
     @Binding var selection: Set<Track.ID>
-    @Binding var sortOrder: [KeyPathComparator<Track>]
     let columns: [TrackTableColumn]
     let onDoubleClick: () -> Void
     let library: LibraryManager?
@@ -82,7 +75,6 @@ private struct DoubleClickableTable: View {
         TableWithDoubleClick(
             tracks: tracks,
             selection: $selection,
-            sortOrder: $sortOrder,
             columns: columns,
             onDoubleClick: onDoubleClick,
             library: library,
@@ -96,7 +88,6 @@ private struct DoubleClickableTable: View {
 private struct TableWithDoubleClick: NSViewRepresentable {
     let tracks: [Track]
     @Binding var selection: Set<Track.ID>
-    @Binding var sortOrder: [KeyPathComparator<Track>]
     let columns: [TrackTableColumn]
     let onDoubleClick: () -> Void
     let library: LibraryManager?
@@ -156,14 +147,14 @@ private struct TableWithDoubleClick: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let tableView = scrollView.documentView as? NSTableView else { return }
         
-        context.coordinator.tracks = tracks
+        context.coordinator.updateTracks(tracks)
         context.coordinator.columns = columns
         
         tableView.reloadData()
         
         // Sync selection from SwiftUI state
         let selectedRows = IndexSet(selection.compactMap { id in
-            tracks.firstIndex(where: { $0.id == id })
+            context.coordinator.sortedTracks.firstIndex(where: { $0.id == id })
         })
         if tableView.selectedRowIndexes != selectedRows {
             tableView.selectRowIndexes(selectedRows, byExtendingSelection: false)
@@ -184,7 +175,8 @@ private struct TableWithDoubleClick: NSViewRepresentable {
     // MARK: - Coordinator
     
     class Coordinator: NSObject, NSTableViewDelegate, NSTableViewDataSource {
-        var tracks: [Track]
+        var originalTracks: [Track]
+        var sortedTracks: [Track]
         var columns: [TrackTableColumn]
         @Binding var selection: Set<Track.ID>
         let onDoubleClick: () -> Void
@@ -193,7 +185,8 @@ private struct TableWithDoubleClick: NSViewRepresentable {
         weak var tableView: NSTableView?
         
         init(tracks: [Track], columns: [TrackTableColumn], selection: Binding<Set<Track.ID>>, onDoubleClick: @escaping () -> Void, library: LibraryManager?, audioPlayer: AudioPlayer) {
-            self.tracks = tracks
+            self.originalTracks = tracks
+            self.sortedTracks = tracks
             self.columns = columns
             self._selection = selection
             self.onDoubleClick = onDoubleClick
@@ -201,17 +194,51 @@ private struct TableWithDoubleClick: NSViewRepresentable {
             self.audioPlayer = audioPlayer
         }
         
+        func updateTracks(_ newTracks: [Track]) {
+            // Keep the current sort descriptor if any
+            if let tableView = tableView,
+               let sortDescriptor = tableView.sortDescriptors.first {
+                self.originalTracks = newTracks
+                applySort(sortDescriptor: sortDescriptor)
+            } else {
+                self.originalTracks = newTracks
+                self.sortedTracks = newTracks
+            }
+        }
+        
+        private func applySort(sortDescriptor: NSSortDescriptor) {
+            guard let columnId = sortDescriptor.key else { return }
+            
+            // Sort tracks based on the column
+            sortedTracks = originalTracks.sorted { track1, track2 in
+                let ascending = sortDescriptor.ascending
+                
+                switch columnId {
+                case "title":
+                    return ascending ? track1.title < track2.title : track1.title > track2.title
+                case "artist":
+                    return ascending ? track1.artist < track2.artist : track1.artist > track2.artist
+                case "album":
+                    return ascending ? track1.album < track2.album : track1.album > track2.album
+                case "duration":
+                    return ascending ? track1.duration < track2.duration : track1.duration > track2.duration
+                default:
+                    return true
+                }
+            }
+        }
+        
         // MARK: - NSTableViewDataSource
         
         func numberOfRows(in tableView: NSTableView) -> Int {
-            return tracks.count
+            return sortedTracks.count
         }
         
         // MARK: - NSTableViewDelegate
         
         func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-            guard row < tracks.count else { return nil }
-            let track = tracks[row]
+            guard row < sortedTracks.count else { return nil }
+            let track = sortedTracks[row]
             
             guard let columnId = tableColumn?.identifier.rawValue else { return nil }
             
@@ -270,9 +297,9 @@ private struct TableWithDoubleClick: NSViewRepresentable {
         }
         
         func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
-            guard row < tracks.count else { return nil }
+            guard row < sortedTracks.count else { return nil }
             let rowView = TrackTableRowView()
-            rowView.track = tracks[row]
+            rowView.track = sortedTracks[row]
             rowView.audioPlayer = audioPlayer
             rowView.library = library
             return rowView
@@ -283,8 +310,8 @@ private struct TableWithDoubleClick: NSViewRepresentable {
             
             let selectedRows = tableView.selectedRowIndexes
             let selectedIDs = Set(selectedRows.compactMap { row -> Track.ID? in
-                guard row < tracks.count else { return nil }
-                return tracks[row].id
+                guard row < sortedTracks.count else { return nil }
+                return sortedTracks[row].id
             })
             
             // Update SwiftUI state
@@ -295,29 +322,8 @@ private struct TableWithDoubleClick: NSViewRepresentable {
         
         func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
             guard let sortDescriptor = tableView.sortDescriptors.first else { return }
-            guard let columnId = sortDescriptor.key else { return }
             
-            // Find the column configuration
-            guard let column = columns.first(where: { $0.id == columnId }) else { return }
-            
-            // Sort tracks based on the column
-            tracks = tracks.sorted { track1, track2 in
-                let ascending = sortDescriptor.ascending
-                
-                switch columnId {
-                case "title":
-                    return ascending ? track1.title < track2.title : track1.title > track2.title
-                case "artist":
-                    return ascending ? track1.artist < track2.artist : track1.artist > track2.artist
-                case "album":
-                    return ascending ? track1.album < track2.album : track1.album > track2.album
-                case "duration":
-                    return ascending ? track1.duration < track2.duration : track1.duration > track2.duration
-                default:
-                    return true
-                }
-            }
-            
+            applySort(sortDescriptor: sortDescriptor)
             tableView.reloadData()
         }
         
