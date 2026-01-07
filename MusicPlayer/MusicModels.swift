@@ -164,7 +164,8 @@ extension Track {
 // MARK: - Album Model
 struct Album: Identifiable, Hashable {
     var id: String {
-        "\(name)-\(albumArtist ?? artist)"
+        // Use a delimiter unlikely to appear in music metadata to prevent collisions
+        "\(name)::\(albumArtist ?? artist)"
     }
     var name: String
     var artist: String

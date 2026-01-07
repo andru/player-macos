@@ -54,8 +54,8 @@ final class PlayerStateTests: XCTestCase {
             albumArtist: "Test Album Artist"
         )
         
-        // Then: ID should be based on album name and album artist
-        XCTAssertEqual(album.id, "Test Album-Test Album Artist")
+        // Then: ID should be based on album name and album artist with :: delimiter
+        XCTAssertEqual(album.id, "Test Album::Test Album Artist")
     }
     
     func testAlbumIDFallsBackToArtist() {
@@ -67,7 +67,7 @@ final class PlayerStateTests: XCTestCase {
         )
         
         // Then: ID should use artist instead
-        XCTAssertEqual(album.id, "Test Album-Test Artist")
+        XCTAssertEqual(album.id, "Test Album::Test Artist")
     }
     
     func testAlbumIDIsStableAcrossInstances() {
@@ -105,13 +105,16 @@ final class PlayerStateTests: XCTestCase {
     // MARK: - State Update Tests
     
     func testPlayerStateUpdatesWhenTrackChanges() {
-        // Given: A track
+        // Given: A track with a temporary file URL
+        let tempDir = FileManager.default.temporaryDirectory
+        let testFileURL = tempDir.appendingPathComponent("test.mp3")
+        
         let track = Track(
             title: "Test Song",
             artist: "Test Artist",
             album: "Test Album",
             duration: 180.0,
-            fileURL: URL(fileURLWithPath: "/tmp/test.mp3")
+            fileURL: testFileURL
         )
         
         // When: Setting current track in player state

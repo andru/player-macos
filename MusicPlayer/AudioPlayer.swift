@@ -23,7 +23,7 @@ class AudioPlayer: NSObject, ObservableObject {
     
     private var player: AVAudioPlayer?
     private var timer: Timer?
-    private var lastTimeUpdate: TimeInterval = 0
+    private var lastPublishedTime: Date = Date()
     private let timeUpdateThrottle: TimeInterval = 0.5 // Update every 0.5s instead of 0.1s
     
     func play(track: Track) {
@@ -78,7 +78,8 @@ class AudioPlayer: NSObject, ObservableObject {
     func seek(to time: TimeInterval) {
         player?.currentTime = time
         playerState.currentTime = time
-        lastTimeUpdate = time
+        // Immediately update timestamp so next timer tick will show the new position
+        lastPublishedTime = Date()
     }
     
     func skipForward() {
@@ -92,15 +93,15 @@ class AudioPlayer: NSObject, ObservableObject {
     }
     
     private func startTimer() {
-        // Update every 0.1s but throttle published updates to 0.5s
+        // Update every 0.1s but throttle published updates using timestamp
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self = self, let player = self.player else { return }
-            let currentTime = player.currentTime
             
-            // Throttle updates: only publish if enough time has passed
-            if abs(currentTime - self.lastTimeUpdate) >= self.timeUpdateThrottle {
-                self.playerState.currentTime = currentTime
-                self.lastTimeUpdate = currentTime
+            // Throttle updates based on time elapsed since last publish
+            let now = Date()
+            if now.timeIntervalSince(self.lastPublishedTime) >= self.timeUpdateThrottle {
+                self.playerState.currentTime = player.currentTime
+                self.lastPublishedTime = now
             }
         }
     }
