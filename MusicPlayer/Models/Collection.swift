@@ -1,9 +1,6 @@
 import Foundation
-import SwiftUI
-import AVFoundation
-import AppKit
-import ImageIO
-import CryptoKit
+
+// MARK: - Core Domain Model (iOS/macOS portable)
 
 struct Collection: Identifiable, Codable, Hashable {
     let id: UUID

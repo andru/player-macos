@@ -1,9 +1,6 @@
 import Foundation
-import SwiftUI
-import AVFoundation
-import AppKit
-import ImageIO
-import CryptoKit
+
+// MARK: - Core Domain Model (iOS/macOS portable)
 
 struct Album: Identifiable, Hashable {
     var id: String {
@@ -32,17 +29,5 @@ struct Album: Identifiable, Hashable {
     /// Uses :: delimiter to avoid collision issues with hyphens in metadata
     static func makeKey(name: String, albumArtist: String?, artist: String) -> String {
         "\(name)::\(albumArtist ?? artist)"
-    }
-
-    var artwork: NSImage? {
-        // Prefer artworkData if available
-        if let artworkData = artworkData {
-            return NSImage(data: artworkData)
-        }
-        // Fall back to first track's artwork
-        if let firstTrackArtwork = tracks.first?.artwork {
-            return firstTrackArtwork
-        }
-        return nil
     }
 }
