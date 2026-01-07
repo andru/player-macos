@@ -3,6 +3,7 @@ import SwiftUI
 struct MainContentView: View {
     @ObservedObject var library: LibraryManager
     @ObservedObject var audioPlayer: AudioPlayer
+    @EnvironmentObject var preferences: PreferencesManager
     @Binding var selectedView: LibraryView
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
@@ -130,6 +131,7 @@ struct MainContentView: View {
             if selectedView == .albums || selectedCollection != nil {
                 ForEach(filteredAlbums) { album in
                     AlbumGridItem(album: album) {
+                        //audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
                         selectedAlbum = album
                     }
                 }
@@ -137,13 +139,13 @@ struct MainContentView: View {
                 ForEach(filteredArtists) { artist in
                     ArtistGridItem(artist: artist) {
 //                        let allTracks = artist.albums.flatMap { $0.tracks }
-//                        audioPlayer.queueTracks(allTracks, startPlaying: true)
+//                        audioPlayer.queueTracks(allTracks, startPlaying: true, behavior: preferences.playbackBehavior)
                     }
                 }
             } else {
                 ForEach(filteredTracks) { track in
                     TrackGridItem(track: track) {
-                        audioPlayer.queueTracks([track], startPlaying: true)
+                        audioPlayer.queueTracks([track], startPlaying: true, behavior: preferences.playbackBehavior)
                     }
                 }
             }
@@ -177,7 +179,7 @@ struct MainContentView: View {
             // Rows
             ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
                 TrackListRow(track: track, index: index + 1) {
-                    audioPlayer.queueTracks([track], startPlaying: true)
+                    audioPlayer.queueTracks([track], startPlaying: true, behavior: preferences.playbackBehavior)
                 }
             }
         }
