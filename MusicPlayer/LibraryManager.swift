@@ -27,7 +27,8 @@ class LibraryManager: ObservableObject {
         var albumDict: [String: Album] = [:]
 
         for track in tracks {
-            let key = "\(track.album)-\(track.albumArtist ?? track.artist)"
+            // Use Album's shared key generation for consistency
+            let key = Album.makeKey(name: track.album, albumArtist: track.albumArtist, artist: track.artist)
             if var album = albumDict[key] {
                 album.tracks.append(track)
                 albumDict[key] = album

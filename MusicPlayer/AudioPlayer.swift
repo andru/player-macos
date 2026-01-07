@@ -1,16 +1,30 @@
 import Foundation
 import AVFoundation
+import Combine
 
-class AudioPlayer: NSObject, ObservableObject {
+// MARK: - PlayerState
+
+/// Decoupled playback state for optimal SwiftUI performance.
+/// Only views that need playback state should observe this object.
+class PlayerState: ObservableObject {
     @Published var currentTrack: Track?
     @Published var isPlaying: Bool = false
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 0
+}
+
+// MARK: - AudioPlayer
+
+class AudioPlayer: NSObject, ObservableObject {
     @Published var queue: [QueueItem] = []
     @Published var currentQueueIndex: Int = -1
     
+    let playerState = PlayerState()
+    
     private var player: AVAudioPlayer?
     private var timer: Timer?
+    private var lastPublishedTime: Date = Date()
+    private let timeUpdateThrottle: TimeInterval = 0.5 // Update every 0.5s instead of 0.1s
     
     func play(track: Track) {
         // Stop current playback
@@ -22,12 +36,12 @@ class AudioPlayer: NSObject, ObservableObject {
             player?.prepareToPlay()
             player?.delegate = self
             
-            currentTrack = track
-            duration = track.duration
+            playerState.currentTrack = track
+            playerState.duration = track.duration
             
             // Start playback
             player?.play()
-            isPlaying = true
+            playerState.isPlaying = true
             
             // Start timer to update current time
             startTimer()
@@ -43,43 +57,52 @@ class AudioPlayer: NSObject, ObservableObject {
     
     func pause() {
         player?.pause()
-        isPlaying = false
+        playerState.isPlaying = false
         stopTimer()
     }
     
     func resume() {
         player?.play()
-        isPlaying = true
+        playerState.isPlaying = true
         startTimer()
     }
     
     func stop() {
         player?.stop()
         player = nil
-        isPlaying = false
-        currentTime = 0
+        playerState.isPlaying = false
+        playerState.currentTime = 0
         stopTimer()
     }
     
     func seek(to time: TimeInterval) {
         player?.currentTime = time
-        currentTime = time
+        playerState.currentTime = time
+        // Reset timestamp after publishing to ensure accurate throttling
+        lastPublishedTime = Date()
     }
     
     func skipForward() {
-        let newTime = min(currentTime + 10, duration)
+        let newTime = min(playerState.currentTime + 10, playerState.duration)
         seek(to: newTime)
     }
     
     func skipBackward() {
-        let newTime = max(currentTime - 10, 0)
+        let newTime = max(playerState.currentTime - 10, 0)
         seek(to: newTime)
     }
     
     private func startTimer() {
+        // Update every 0.1s but throttle published updates using timestamp
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self = self, let player = self.player else { return }
-            self.currentTime = player.currentTime
+            
+            // Throttle updates based on time elapsed since last publish
+            let now = Date()
+            if now.timeIntervalSince(self.lastPublishedTime) >= self.timeUpdateThrottle {
+                self.playerState.currentTime = player.currentTime
+                self.lastPublishedTime = now
+            }
         }
     }
     
@@ -214,8 +237,8 @@ struct QueueItem: Identifiable {
 
 extension AudioPlayer: AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        isPlaying = false
-        currentTime = 0
+        playerState.isPlaying = false
+        playerState.currentTime = 0
         stopTimer()
         
         if !flag {

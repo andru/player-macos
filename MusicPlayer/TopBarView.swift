@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct TopBarView: View {
-    @ObservedObject var audioPlayer: AudioPlayer
+    @ObservedObject var playerState: PlayerState
+    var audioPlayer: AudioPlayer
     @Binding var searchText: String
     @Binding var showQueue: Bool
     
@@ -17,11 +18,11 @@ struct TopBarView: View {
                 .disabled(audioPlayer.currentQueueIndex <= 0)
                 
                 Button(action: togglePlayPause) {
-                    Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                    Image(systemName: playerState.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                         .font(.title)
                 }
                 .buttonStyle(.plain)
-                .disabled(audioPlayer.currentTrack == nil)
+                .disabled(playerState.currentTrack == nil)
                 
                 Button(action: { audioPlayer.playNext() }) {
                     Image(systemName: "forward.fill")
@@ -33,7 +34,9 @@ struct TopBarView: View {
             .frame(width: 120)
             
             // Current track info
-            NowPlayingWidget(audioPlayer: audioPlayer)
+            NowPlayingWidget(playerState: playerState, onSeek: { time in
+                audioPlayer.seek(to: time)
+            })
             
             Spacer()
             
@@ -71,7 +74,7 @@ struct TopBarView: View {
     }
     
     private func togglePlayPause() {
-        if audioPlayer.isPlaying {
+        if playerState.isPlaying {
             audioPlayer.pause()
         } else {
             audioPlayer.resume()

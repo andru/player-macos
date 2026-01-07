@@ -163,7 +163,10 @@ extension Track {
 
 // MARK: - Album Model
 struct Album: Identifiable, Hashable {
-    let id: UUID
+    var id: String {
+        // Use shared key generation to ensure consistency
+        Album.makeKey(name: name, albumArtist: albumArtist, artist: artist)
+    }
     var name: String
     var artist: String
     var albumArtist: String?
@@ -172,8 +175,7 @@ struct Album: Identifiable, Hashable {
     var tracks: [Track]
     var year: Int?
     
-    init(id: UUID = UUID(), name: String, artist: String, albumArtist: String? = nil, artworkURL: URL? = nil, artworkData: Data? = nil, tracks: [Track] = [], year: Int? = nil) {
-        self.id = id
+    init(name: String, artist: String, albumArtist: String? = nil, artworkURL: URL? = nil, artworkData: Data? = nil, tracks: [Track] = [], year: Int? = nil) {
         self.name = name
         self.artist = artist
         self.albumArtist = albumArtist
@@ -181,6 +183,12 @@ struct Album: Identifiable, Hashable {
         self.artworkData = artworkData
         self.tracks = tracks
         self.year = year
+    }
+    
+    /// Generate a stable key for an album based on its name and artist
+    /// Uses :: delimiter to avoid collision issues with hyphens in metadata
+    static func makeKey(name: String, albumArtist: String?, artist: String) -> String {
+        "\(name)::\(albumArtist ?? artist)"
     }
 
     var artwork: NSImage? {
