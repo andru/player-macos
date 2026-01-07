@@ -96,6 +96,10 @@
 				64E05A182F0EB9EE004A98C2 /* Repositories */,
 			);
 			name = MusicPlayer;
+			packageProductDependencies = (
+				64E05B1B2F0EC705004A98C2 /* GRDB */,
+				64E05B1C2F0EC8A8004A98C2 /* GRDBQuery */,
+			);
 			productName = MusicPlayer;
 			productReference = A3000001000000000000001 /* MusicPlayer.app */;
 			productType = "com.apple.product-type.application";
@@ -378,6 +382,20 @@
 				version = 0.11.0;
 			};
 		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		64E05B1B2F0EC705004A98C2 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64E05B192F0EC705004A98C2 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		64E05B1C2F0EC8A8004A98C2 /* GRDBQuery */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64E05B1A2F0EC8A8004A98C2 /* XCRemoteSwiftPackageReference "GRDBQuery" */;
+			productName = GRDBQuery;
+		};
+/* End XCSwiftPackageProductDependency section */
 /* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = AA000001000000000000001 /* Project object */;
