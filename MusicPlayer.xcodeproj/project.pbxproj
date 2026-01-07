@@ -24,7 +24,7 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LibraryBundleTemplate; sourceTree = "<group>"; };
 		64E05A142F0EB9EE004A98C2 /* Database */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Database; sourceTree = "<group>"; };
-		64E05A152F0EB9EE004A98C2 /* Managers */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Managers; sourceTree = "<group>"; };
+		64E05A152F0EB9EE004A98C2 /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
 		64E05A162F0EB9EE004A98C2 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
 		64E05A182F0EB9EE004A98C2 /* Repositories */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Repositories; sourceTree = "<group>"; };
 		64E05BF52F0F0052004A98C2 /* Preferences */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Preferences; sourceTree = "<group>"; };
@@ -70,8 +70,8 @@
 			children = (
 				64E05BF62F0F03A0004A98C2 /* Slices */,
 				64E05A142F0EB9EE004A98C2 /* Database */,
-				64E05A152F0EB9EE004A98C2 /* Managers */,
 				64E05A162F0EB9EE004A98C2 /* Models */,
+				64E05A152F0EB9EE004A98C2 /* Services */,
 				64E05A182F0EB9EE004A98C2 /* Repositories */,
 				64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */,
 				A2000009000000000000001 /* Assets.xcassets */,
@@ -108,7 +108,7 @@
 			fileSystemSynchronizedGroups = (
 				64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */,
 				64E05A142F0EB9EE004A98C2 /* Database */,
-				64E05A152F0EB9EE004A98C2 /* Managers */,
+				64E05A152F0EB9EE004A98C2 /* Services */,
 				64E05A162F0EB9EE004A98C2 /* Models */,
 				64E05A182F0EB9EE004A98C2 /* Repositories */,
 				64E05BF52F0F0052004A98C2 /* Preferences */,

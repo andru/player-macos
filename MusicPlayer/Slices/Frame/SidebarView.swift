@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @Binding var selectedView: LibraryView
+    @Binding var selectedView: LibraryViewMode
     @Binding var selectedCollection: Collection?
     @ObservedObject var library: LibraryManager
     
@@ -16,7 +16,7 @@ struct SidebarView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 4)
                 
-                ForEach(LibraryView.allCases, id: \.self) { view in
+                ForEach(LibraryViewMode.allCases, id: \.self) { view in
                     SidebarItemView(
                         title: view.rawValue,
                         icon: iconForView(view),
@@ -67,7 +67,7 @@ struct SidebarView: View {
         .background(Color(nsColor: .controlBackgroundColor))
     }
     
-    private func iconForView(_ view: LibraryView) -> String {
+    private func iconForView(_ view: LibraryViewMode) -> String {
         switch view {
         case .artists:
             return "music.mic"

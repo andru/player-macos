@@ -5,7 +5,7 @@ struct ContentView: View {
     @EnvironmentObject var library: LibraryManager
     @EnvironmentObject var preferences: PreferencesService
     @StateObject private var audioPlayer = AudioPlayer()
-    @State private var selectedView: LibraryView = .albums
+    @State private var selectedView: LibraryViewMode = .albums
     @State private var selectedCollection: Collection? = nil
     @State private var searchText: String = ""
     @State private var showQueue: Bool = false
@@ -42,7 +42,7 @@ struct ContentView: View {
                         }
                     )
                 } else {
-                    MainContentView(
+                    LibraryView(
                         library: library,
                         audioPlayer: audioPlayer,
                         selectedView: $selectedView,

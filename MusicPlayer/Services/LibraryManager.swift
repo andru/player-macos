@@ -436,7 +436,7 @@ class LibraryManager: ObservableObject {
 
         // Load duration and metadata using availability-safe helper
         let (duration, metadataItems) = await loadDurationAndMetadata(for: asset)
-        var albumArtist: String? = await extractAlbumArtist(from: metadataItems)
+        let albumArtist: String? = await extractAlbumArtist(from: metadataItems)
 
         for item in metadataItems {
             // Prefer modern async loading on macOS 13+

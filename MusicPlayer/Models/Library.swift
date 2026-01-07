@@ -1,7 +1,7 @@
 // TODO - move these
 
 // MARK: - View Selection
-enum LibraryView: String, CaseIterable {
+enum LibraryViewMode: String, CaseIterable {
     case artists = "Artists"
     case albums = "Albums"
     case songs = "Songs"
