@@ -3,6 +3,7 @@ import SwiftUI
 struct MainContentView: View {
     @ObservedObject var library: LibraryManager
     var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
+    @EnvironmentObject var preferences: PreferencesManager
     @Binding var selectedView: LibraryView
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
@@ -129,22 +130,27 @@ struct MainContentView: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
             if selectedView == .albums || selectedCollection != nil {
                 ForEach(filteredAlbums) { album in
-                    AlbumGridItem(album: album) {
+
+                    AlbumGridItem(album: album, action: {
                         selectedAlbum = album
-                    }
+                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
+                    }, audioPlayer: audioPlayer, library: library)
+
                 }
             } else if selectedView == .artists {
                 ForEach(filteredArtists) { artist in
                     ArtistGridItem(artist: artist) {
 //                        let allTracks = artist.albums.flatMap { $0.tracks }
-//                        audioPlayer.queueTracks(allTracks, startPlaying: true)
+//                        audioPlayer.queueTracks(allTracks, startPlaying: true, behavior: preferences.playbackBehavior)
                     }
                 }
             } else {
                 ForEach(filteredTracks) { track in
-                    TrackGridItem(track: track) {
-                        audioPlayer.queueTracks([track], startPlaying: true)
-                    }
+
+                    TrackGridItem(track: track, action: {
+                        audioPlayer.queueTracks([track], startPlaying: true, behavior: preferences.playbackBehavior)
+                    }, audioPlayer: audioPlayer, library: library)
+
                 }
             }
         }
@@ -176,13 +182,14 @@ struct MainContentView: View {
             
             // Rows
             ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
-                TrackListRow(track: track, index: index + 1) {
-                    audioPlayer.queueTracks([track], startPlaying: true)
-                }
+
+                TrackListRow(track: track, index: index + 1, action: {
+                    audioPlayer.queueTracks([track], startPlaying: true, behavior: preferences.playbackBehavior)
+                }, audioPlayer: audioPlayer, library: library)
+
             }
         }
     }
-    
     private var filteredAlbums: [Album] {
         var albums = library.albums
         
@@ -279,6 +286,8 @@ struct MainContentView: View {
 struct AlbumGridItem: View {
     let album: Album
     let action: () -> Void
+    let audioPlayer: AudioPlayer?
+    let library: LibraryManager?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -303,6 +312,11 @@ struct AlbumGridItem: View {
                 }
             }
             .buttonStyle(.plain)
+            .contextMenu {
+                if let audioPlayer = audioPlayer {
+                    AlbumContextMenu(album: album, audioPlayer: audioPlayer, library: library)
+                }
+            }
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(album.name)
@@ -357,6 +371,8 @@ struct ArtistGridItem: View {
 struct TrackGridItem: View {
     let track: Track
     let action: () -> Void
+    let audioPlayer: AudioPlayer?
+    let library: LibraryManager?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -381,6 +397,11 @@ struct TrackGridItem: View {
                 }
             }
             .buttonStyle(.plain)
+            .contextMenu {
+                if let audioPlayer = audioPlayer {
+                    TrackContextMenu(track: track, audioPlayer: audioPlayer, library: library)
+                }
+            }
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(track.title)
@@ -407,6 +428,8 @@ struct TrackListRow: View {
     let track: Track
     let index: Int
     let action: () -> Void
+    let audioPlayer: AudioPlayer?
+    let library: LibraryManager?
     @State private var isHovered = false
     
     var body: some View {
@@ -437,10 +460,120 @@ struct TrackListRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            if let audioPlayer = audioPlayer {
+                TrackContextMenu(track: track, audioPlayer: audioPlayer, library: library)
+            }
+        }
         .onHover { hovering in
             isHovered = hovering
         }
         
         Divider()
+    }
+}
+
+// MARK: - Context Menu Components
+
+struct AlbumContextMenu: View {
+    let album: Album
+    let audioPlayer: AudioPlayer
+    let library: LibraryManager?
+    
+    var body: some View {
+        Button("Play Now") {
+            audioPlayer.queueTracks(album.tracks, startPlaying: true)
+        }
+        
+        Button("Next in Queue") {
+            audioPlayer.addToQueueNext(album.tracks)
+        }
+        
+        Button("End of Queue") {
+            audioPlayer.addToQueueEnd(album.tracks)
+        }
+        
+        Divider()
+        
+        Button("Favourite") {
+            album.tracks.forEach { library?.toggleFavorite(track: $0) }
+        }
+        
+        Button("Add to Collection") {
+            // TODO: Show collection picker
+            print("Add to collection")
+        }
+        
+        Button("Add to Playlist") {
+            // TODO: Show playlist picker
+            print("Add to playlist")
+        }
+        
+        Divider()
+        
+        Button("Remove from Library") {
+            album.tracks.forEach { library?.removeFromLibrary(track: $0) }
+        }
+        
+        Button("Refresh from Source") {
+            album.tracks.forEach { library?.refreshFromSource(track: $0) }
+        }
+        
+        Button("Edit Info") {
+            // Edit first track or album info
+            if let firstTrack = album.tracks.first {
+                library?.editInfo(track: firstTrack)
+            }
+        }
+    }
+}
+
+struct TrackContextMenu: View {
+    let track: Track
+    let audioPlayer: AudioPlayer
+    let library: LibraryManager?
+    
+    var body: some View {
+        Button("Play Now") {
+            audioPlayer.playNow(track)
+        }
+        
+        Button("Next in Queue") {
+            audioPlayer.addToQueueNext(track)
+        }
+        
+        Button("End of Queue") {
+            audioPlayer.addToQueueEnd(track)
+        }
+        
+        Divider()
+        
+        Button("Favourite") {
+            library?.toggleFavorite(track: track)
+        }
+        
+        Button("Add to Collection") {
+            // TODO: Show collection picker
+            print("Add to collection")
+        }
+        
+        Button("Add to Playlist") {
+            // TODO: Show playlist picker
+            print("Add to playlist")
+        }
+        
+        Divider()
+        
+        Button("Remove from Library") {
+            library?.removeFromLibrary(track: track)
+        }
+        
+        Button("Refresh from Source") {
+            library?.refreshFromSource(track: track)
+        }
+        
+        Button("Edit Info") {
+            library?.editInfo(track: track)
+        }
     }
 }

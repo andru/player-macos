@@ -2,7 +2,8 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @StateObject private var library = LibraryManager()
+    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var preferences: PreferencesManager
     @StateObject private var audioPlayer = AudioPlayer()
     @State private var selectedView: LibraryView = .albums
     @State private var selectedCollection: Collection? = nil
@@ -48,7 +49,7 @@ struct ContentView: View {
                         selectedCollection: $selectedCollection,
                         searchText: $searchText,
                         selectedAlbum: $selectedAlbum
-                    )
+                    ).environmentObject(preferences)
                 }
                 
                 if showQueue {
@@ -66,4 +67,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(LibraryManager())
+        .environmentObject(PreferencesManager())
 }

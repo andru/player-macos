@@ -126,6 +126,40 @@ class LibraryManager: ObservableObject {
         collections.removeAll { $0.id == collection.id }
         saveLibrary()
     }
+    
+    // MARK: - Context Menu Actions
+    
+    func toggleFavorite(track: Track) {
+        // TODO: Implement favorite tracking
+        print("Toggle favorite for track: \(track.title)")
+    }
+    
+    func addTracksToCollection(tracks: [Track], collection: Collection) {
+        // Add track IDs to collection if not already present
+        guard let index = collections.firstIndex(where: { $0.id == collection.id }) else { return }
+        var updatedCollection = collections[index]
+        for track in tracks {
+            if !updatedCollection.trackIDs.contains(track.id) {
+                updatedCollection.trackIDs.append(track.id)
+            }
+        }
+        collections[index] = updatedCollection
+        saveLibrary()
+    }
+    
+    func removeFromLibrary(track: Track) {
+        removeTrack(track)
+    }
+    
+    func refreshFromSource(track: Track) {
+        // TODO: Implement metadata refresh from file
+        print("Refresh metadata for track: \(track.title)")
+    }
+    
+    func editInfo(track: Track) {
+        // TODO: Implement edit info dialog
+        print("Edit info for track: \(track.title)")
+    }
 
     /// Called by UI when user selects a folder to host the library.
     func setLibraryLocation(url: URL) {
