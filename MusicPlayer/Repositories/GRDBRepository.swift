@@ -19,22 +19,6 @@ struct TrackRecord: Codable, FetchableRecord, PersistableRecord {
     
     static let databaseTableName = "tracks"
     
-    // Map Swift property names to database column names for backward compatibility
-    enum CodingKeys: String, CodingKey {
-        case id
-        case title
-        case artist
-        case album
-        case albumArtist = "album_artist"
-        case duration
-        case fileURL = "file_url"
-        case artworkURL = "artwork_url"
-        case artworkData = "artwork_data"
-        case genre
-        case year
-        case trackNumber = "track_number"
-    }
-    
     init(from track: Track) {
         self.id = track.id.uuidString
         self.title = track.title
@@ -91,13 +75,6 @@ struct CollectionTrackRecord: Codable, FetchableRecord, PersistableRecord {
     
     static let databaseTableName = "collection_tracks"
     
-    // Map Swift property names to database column names for backward compatibility
-    enum CodingKeys: String, CodingKey {
-        case collectionId = "collection_id"
-        case trackId = "track_id"
-        case position
-    }
-    
     enum Columns {
         static let collectionId = Column(CodingKeys.collectionId)
         static let trackId = Column(CodingKeys.trackId)
@@ -116,69 +93,65 @@ class GRDBRepository: TrackRepository, CollectionRepository {
     
     /// Open database connection at the specified library bundle URL
     func openDatabase(at bundleURL: URL) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            do {
-                closeDatabase()
+        closeDatabase()
+        
+        let dbURL = bundleURL
+            .appendingPathComponent("Contents/Resources/")
+            .appendingPathComponent(dbFileName)
+        
+        do {
+            let dbQueue = try DatabaseQueue(path: dbURL.path)
+            self.dbQueue = dbQueue
+            
+            // Run migrations
+            try dbQueue.write { db in
+                var migrator = DatabaseMigrator()
                 
-                let dbURL = bundleURL
-                    .appendingPathComponent("Contents/Resources/")
-                    .appendingPathComponent(dbFileName)
-                
-                let dbQueue = try DatabaseQueue(path: dbURL.path)
-                self.dbQueue = dbQueue
-                
-                // Run migrations
-                try dbQueue.write { db in
-                    var migrator = DatabaseMigrator()
-                    
-                    // Migration v1: Initial schema
-                    migrator.registerMigration("v1") { db in
-                        // Create tracks table
-                        try db.create(table: "tracks") { t in
-                            t.column("id", .text).primaryKey()
-                            t.column("title", .text).notNull()
-                            t.column("artist", .text).notNull()
-                            t.column("album", .text).notNull()
-                            t.column("album_artist", .text)
-                            t.column("duration", .double).notNull()
-                            t.column("file_url", .text).notNull()
-                            t.column("artwork_url", .text)
-                            t.column("artwork_data", .blob)
-                            t.column("genre", .text)
-                            t.column("year", .integer)
-                            t.column("track_number", .integer)
-                        }
-                        
-                        // Create collections table
-                        try db.create(table: "collections") { t in
-                            t.column("id", .text).primaryKey()
-                            t.column("name", .text).notNull()
-                        }
-                        
-                        // Create collection_tracks junction table
-                        try db.create(table: "collection_tracks") { t in
-                            t.column("collection_id", .text).notNull()
-                            t.column("track_id", .text).notNull()
-                            t.column("position", .integer).notNull()
-                            t.primaryKey(["collection_id", "track_id"])
-                            t.foreignKey(["collection_id"], references: "collections", columns: ["id"], onDelete: .cascade)
-                            t.foreignKey(["track_id"], references: "tracks", columns: ["id"], onDelete: .cascade)
-                        }
-                        
-                        // Create indexes for better performance
-                        try db.create(index: "idx_tracks_artist", on: "tracks", columns: ["artist"])
-                        try db.create(index: "idx_tracks_album", on: "tracks", columns: ["album"])
-                        try db.create(index: "idx_tracks_album_artist", on: "tracks", columns: ["album_artist"])
-                        try db.create(index: "idx_collection_tracks_collection", on: "collection_tracks", columns: ["collection_id"])
+                // Migration v1: Initial schema
+                migrator.registerMigration("v1") { db in
+                    // Create tracks table
+                    try db.create(table: "tracks") { t in
+                        t.column("id", .text).primaryKey()
+                        t.column("title", .text).notNull()
+                        t.column("artist", .text).notNull()
+                        t.column("album", .text).notNull()
+                        t.column("albumArtist", .text)
+                        t.column("duration", .double).notNull()
+                        t.column("fileURL", .text).notNull()
+                        t.column("artworkURL", .text)
+                        t.column("artworkData", .blob)
+                        t.column("genre", .text)
+                        t.column("year", .integer)
+                        t.column("trackNumber", .integer)
                     }
                     
-                    try migrator.migrate(db)
+                    // Create collections table
+                    try db.create(table: "collections") { t in
+                        t.column("id", .text).primaryKey()
+                        t.column("name", .text).notNull()
+                    }
+                    
+                    // Create collection_tracks junction table
+                    try db.create(table: "collection_tracks") { t in
+                        t.column("collectionId", .text).notNull()
+                        t.column("trackId", .text).notNull()
+                        t.column("position", .integer).notNull()
+                        t.primaryKey(["collectionId", "trackId"])
+                        t.foreignKey(["collectionId"], references: "collections", columns: ["id"], onDelete: .cascade)
+                        t.foreignKey(["trackId"], references: "tracks", columns: ["id"], onDelete: .cascade)
+                    }
+                    
+                    // Create indexes for better performance
+                    try db.create(index: "idx_tracks_artist", on: "tracks", columns: ["artist"])
+                    try db.create(index: "idx_tracks_album", on: "tracks", columns: ["album"])
+                    try db.create(index: "idx_tracks_album_artist", on: "tracks", columns: ["albumArtist"])
+                    try db.create(index: "idx_collection_tracks_collection", on: "collection_tracks", columns: ["collectionId"])
                 }
                 
-                continuation.resume()
-            } catch {
-                continuation.resume(throwing: DatabaseError.openFailed(message: error.localizedDescription))
+                try migrator.migrate(db)
             }
+        } catch {
+            throw DatabaseError.openFailed(message: error.localizedDescription)
         }
     }
     

@@ -184,14 +184,14 @@ try db.create(table: "tracks") { t in
     t.column("title", .text).notNull()
     t.column("artist", .text).notNull()
     t.column("album", .text).notNull()
-    t.column("album_artist", .text)
+    t.column("albumArtist", .text)
     t.column("duration", .double).notNull()
-    t.column("file_url", .text).notNull()
-    t.column("artwork_url", .text)
-    t.column("artwork_data", .blob)
+    t.column("fileURL", .text).notNull()
+    t.column("artworkURL", .text)
+    t.column("artworkData", .blob)
     t.column("genre", .text)
     t.column("year", .integer)
-    t.column("track_number", .integer)
+    t.column("trackNumber", .integer)
 }
 ```
 
@@ -206,12 +206,12 @@ try db.create(table: "collections") { t in
 **collection_tracks** (junction table)
 ```swift
 try db.create(table: "collection_tracks") { t in
-    t.column("collection_id", .text).notNull()
-    t.column("track_id", .text).notNull()
+    t.column("collectionId", .text).notNull()
+    t.column("trackId", .text).notNull()
     t.column("position", .integer).notNull()
-    t.primaryKey(["collection_id", "track_id"])
-    t.foreignKey(["collection_id"], references: "collections", columns: ["id"], onDelete: .cascade)
-    t.foreignKey(["track_id"], references: "tracks", columns: ["id"], onDelete: .cascade)
+    t.primaryKey(["collectionId", "trackId"])
+    t.foreignKey(["collectionId"], references: "collections", columns: ["id"], onDelete: .cascade)
+    t.foreignKey(["trackId"], references: "tracks", columns: ["id"], onDelete: .cascade)
 }
 ```
 
@@ -221,8 +221,8 @@ For optimal query performance:
 ```swift
 try db.create(index: "idx_tracks_artist", on: "tracks", columns: ["artist"])
 try db.create(index: "idx_tracks_album", on: "tracks", columns: ["album"])
-try db.create(index: "idx_tracks_album_artist", on: "tracks", columns: ["album_artist"])
-try db.create(index: "idx_collection_tracks_collection", on: "collection_tracks", columns: ["collection_id"])
+try db.create(index: "idx_tracks_album_artist", on: "tracks", columns: ["albumArtist"])
+try db.create(index: "idx_collection_tracks_collection", on: "collection_tracks", columns: ["collectionId"])
 ```
 
 ## Testing
