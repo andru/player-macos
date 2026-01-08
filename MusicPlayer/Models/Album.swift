@@ -1,7 +1,9 @@
 import Foundation
 
-// MARK: - Core Domain Model (iOS/macOS portable)
+// MARK: - UI/View Model (maps ReleaseGroup for compatibility)
 
+/// Album is a UI/view model that wraps a ReleaseGroup for backward compatibility
+/// This allows the UI to continue using "Album" while the persistence layer uses ReleaseGroup
 struct Album: Identifiable, Hashable {
     let id: Int64
     var artistId: Int64
@@ -42,10 +44,28 @@ struct Album: Identifiable, Hashable {
         self.updatedAt = updatedAt
         self.releases = releases
         self.artist = artist
+        // Derive artistName from artist or use primary artist name
+        self.artistName = artist?.name ?? albumArtistName ?? "Unknown Artist"
+    }
+    
+    /// Create an Album view model from a ReleaseGroup
+    init(from releaseGroup: ReleaseGroup, artistName: String? = nil) {
+        self.id = releaseGroup.id
+        self.artistId = releaseGroup.primaryArtistId ?? 0
+        self.title = releaseGroup.title
+        self.sortTitle = nil
+        self.albumArtistName = artistName
+        self.composerName = nil
+        self.isCompilation = releaseGroup.isCompilation
+        self.createdAt = releaseGroup.createdAt
+        self.updatedAt = releaseGroup.updatedAt
+        self.releases = releaseGroup.releases
+        self.artist = releaseGroup.primaryArtist
+        self.artistName = artistName ?? releaseGroup.primaryArtist?.name ?? "Unknown Artist"
     }
     
     var trackCount: Int {
-        releases.reduce(0) { $0 + $1.tracks.count }
+        releases.reduce(0) { $0 + $1.trackCount }
     }
     
     enum CodingKeys: String, CodingKey {
