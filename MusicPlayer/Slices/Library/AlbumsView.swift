@@ -45,19 +45,21 @@ struct AlbumsView: View {
             }
             
             if displayMode == .grid {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
-                    
-                    ForEach(filteredAlbums) { album in
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
                         
-                        AlbumGridItem(album: album, action: {
-                            selectedAlbum = album
-                            //                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
-                        }, audioPlayer: audioPlayer, library: library)
+                        ForEach(filteredAlbums) { album in
+                            
+                            AlbumGridItem(album: album, action: {
+                                selectedAlbum = album
+                                //                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
+                            }, audioPlayer: audioPlayer, library: library)
+                            
+                        }
                         
                     }
-                    
+                    .padding()
                 }
-                .padding()
             } else {
                 TrackTableView(
                     filteredTracks: sortedTracks,

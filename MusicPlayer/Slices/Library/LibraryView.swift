@@ -3,6 +3,7 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
+    var audioPlayer: AudioPlayer
     @Binding var selectedView: LibraryViewMode
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
@@ -31,17 +32,10 @@ struct LibraryView: View {
             // Content
             Group {
                 if selectedView == .albums || selectedCollection != nil {
-                    ScrollView {
-                        AlbumsView(selectedAlbum: $selectedAlbum, filteredAlbums: filteredAlbums, audioPlayer: audioPlayer)
-                    }
+                    AlbumsView(selectedAlbum: $selectedAlbum, filteredAlbums: filteredAlbums, audioPlayer: audioPlayer)
                 } else if selectedView == .artists {
-                    ScrollView {
-                        ArtistsView(filteredArtists: filteredArtists)
-                    }
+                    ArtistsView(filteredArtists: filteredArtists)
                 } else {
-                    // SongsView contains a SwiftUI Table which provides its own scrolling
-                    // and should not be wrapped in an outer ScrollView if we want it to
-                    // expand to fill available space.
                     SongsView(filteredTracks: filteredTracks, audioPlayer: audioPlayer)
                 }
             }

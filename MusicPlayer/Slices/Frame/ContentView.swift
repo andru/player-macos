@@ -27,8 +27,7 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 SidebarView(
                     selectedView: $selectedView,
-                    selectedCollection: $selectedCollection,
-                    library: library
+                    selectedCollection: $selectedCollection
                 )
                 
                 Divider()
@@ -43,7 +42,6 @@ struct ContentView: View {
                     )
                 } else {
                     LibraryView(
-                        library: library,
                         audioPlayer: audioPlayer,
                         selectedView: $selectedView,
                         selectedCollection: $selectedCollection,
