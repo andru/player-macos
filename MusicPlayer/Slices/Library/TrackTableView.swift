@@ -34,23 +34,23 @@ struct TrackTableView: View {
             .width(min: 100)
             
             // Artist column (sortable)
-            TableColumn("Artist", value: \.artist) { track in
-                Text(track.artist)
+            TableColumn("Artist", value: \.artistName) { track in
+                Text(track.artistName)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .width(min: 100, ideal: 200)
             
-            // Album column (sortable)
-            TableColumn("Album", value: \.album) { track in
-                Text(track.album)
+            // Album column (sortable by release album title)
+            TableColumn("Album") { track in
+                Text(track.release?.album?.title ?? "Unknown Album")
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .width(min: 100, ideal: 200)
             
             // Duration column (sortable)
-            TableColumn("Duration", value: \.duration) { track in
+            TableColumn("Duration") { track in
                 Text(track.formattedDuration)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .trailing)
