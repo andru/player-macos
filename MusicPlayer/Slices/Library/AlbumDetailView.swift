@@ -5,12 +5,16 @@ struct AlbumDetailView: View {
     var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
     let onBack: () -> Void
     
-    @State private var selectedTrackIDs: Set<UUID> = []
-    @State private var lastSelectedTrackID: UUID?
+    @State private var selectedTrackIDs: Set<Int64> = []
+    @State private var lastSelectedTrackID: Int64?
     
-    // Cache sorted tracks and total duration since album doesn't change
+    // Get all tracks from all releases, sorted by disc and track number
     private var sortedTracks: [Track] {
-        album.tracks.sorted { (t1, t2) in
+        let allTracks = album.releases.flatMap { $0.tracks }
+        return allTracks.sorted { (t1, t2) in
+            if t1.discNumber != t2.discNumber {
+                return t1.discNumber < t2.discNumber
+            }
             let n1 = t1.trackNumber ?? Int.max
             let n2 = t2.trackNumber ?? Int.max
             return n1 < n2
@@ -18,7 +22,7 @@ struct AlbumDetailView: View {
     }
     
     private var totalDuration: String {
-        let total = album.tracks.reduce(0) { $0 + $1.duration }
+        let total = sortedTracks.reduce(0.0) { $0 + ($1.duration ?? 0) }
         let hours = Int(total) / 3600
         let minutes = (Int(total) % 3600) / 60
         
@@ -27,6 +31,11 @@ struct AlbumDetailView: View {
         } else {
             return "\(minutes)m"
         }
+    }
+    
+    // Get year from first release
+    private var albumYear: Int? {
+        album.releases.first?.year
     }
     
     var body: some View {
@@ -73,27 +82,31 @@ struct AlbumDetailView: View {
                 
                 // Album metadata
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(album.name)
+                    Text(album.title)
                         .font(.system(size: 32, weight: .bold))
                     
-                    Text(album.albumArtist ?? album.artist)
+                    Text(album.albumArtistName ?? album.artist?.name ?? "Unknown Artist")
                         .font(.system(size: 18))
                         .foregroundColor(.secondary)
                     
                     HStack(spacing: 16) {
-                        if let year = album.year {
+                        if let year = albumYear {
                             Text(String(year))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                         
-                        if let genre = album.tracks.first?.genre {
+                        if let genre = sortedTracks.first?.genre {
                             Text(genre)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                         
                         Text(totalDuration)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Text("\(sortedTracks.count) songs")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -135,7 +148,7 @@ struct AlbumDetailView: View {
                         ForEach(sortedTracks) { track in
                             AlbumTrackRow(
                                 track: track,
-                                albumArtist: album.albumArtist ?? album.artist,
+                                albumArtist: album.albumArtistName ?? album.artist?.name ?? "",
                                 isSelected: selectedTrackIDs.contains(track.id),
                                 onSingleClick: { modifiers in
                                     handleTrackSelection(track: track, modifiers: modifiers)
@@ -221,8 +234,8 @@ struct AlbumTrackRow: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     // Show artist if different from album artist
-                    if track.artist != albumArtist {
-                        Text(track.artist)
+                    if track.artistName != albumArtist {
+                        Text(track.artistName)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
