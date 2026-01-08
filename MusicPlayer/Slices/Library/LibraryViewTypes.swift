@@ -10,3 +10,9 @@ enum DisplayMode {
     case grid
     case list
 }
+
+enum LibrarySortOption: String, CaseIterable {
+    case title = "Title"
+    case album = "Album"
+    case artist = "Artist"
+}
