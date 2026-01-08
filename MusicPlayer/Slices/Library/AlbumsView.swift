@@ -7,11 +7,11 @@ struct AlbumsView: View {
     var filteredAlbums: [Album]
     let audioPlayer: AudioPlayer
     @State private var displayMode: DisplayMode = .grid
-    @State private var sortOrder = [KeyPathComparator(\Track.title)]
+    @StateObject private var viewModel = SongsViewModel()
     
     private var sortedTracks: [Track] {
         let allTracks = filteredAlbums.flatMap { $0.tracks }
-        return allTracks.sorted(using: sortOrder)
+        return viewModel.sortedTracks(from: allTracks)
     }
     
     var body: some View {
@@ -62,7 +62,7 @@ struct AlbumsView: View {
                 TrackTableView(
                     filteredTracks: sortedTracks,
                     audioPlayer: audioPlayer,
-                    sortOrder: $sortOrder
+                    sortOrder: $viewModel.sortOrder
                 )
             }
         }.onAppear {
