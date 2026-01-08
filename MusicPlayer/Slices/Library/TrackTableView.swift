@@ -5,7 +5,7 @@ import SwiftUI
 struct TrackTableView: View {
     @EnvironmentObject var library: LibraryManager
     @EnvironmentObject var preferences: PreferencesService
-    var filteredTracks: [Track]
+    let filteredTracks: [Track]
     let audioPlayer: AudioPlayer
     
     // State for selection and sorting
@@ -15,15 +15,17 @@ struct TrackTableView: View {
     var body: some View {
         Table(filteredTracks, selection: $selection, sortOrder: $sortOrder) {
             // Track number column (non-sortable)
-            TableColumn("#") { track in
-                if let index = filteredTracks.firstIndex(where: { $0.id == track.id }) {
-                    Text("\(index + 1)")
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            .width(min: 40, ideal: 40, max: 60)
-            
+//            TableColumn("#") { track in
+////                if let index = filteredTracks.firstIndex(where: { $0.id == track.id }) {
+////                    Text("\(index + 1)")
+////                        .foregroundColor(.secondary)
+////                        .frame(maxWidth: .infinity, alignment: .leading)
+////                }
+//                Text("\(track.trackNumber ?? "-")")
+//                    
+//            }
+//            .width(min: 40, ideal: 40, max: 60)
+//            
             // Title column (sortable)
             TableColumn("Title", value: \.title) { track in
                 Text(track.title)
@@ -55,6 +57,8 @@ struct TrackTableView: View {
             }
             .width(min: 60, ideal: 80, max: 100)
         }
+        .frame(minHeight: 100, maxHeight: .infinity)
+        .layoutPriority(1)
         .contextMenu(forSelectionType: Track.ID.self) { items in
             // Context menu for selected items
             if items.count == 1, let trackID = items.first,
@@ -80,3 +84,8 @@ struct TrackTableView: View {
     }
 }
 
+#Preview {
+    ContentView()
+        .environmentObject(LibraryManager())
+        .environmentObject(PreferencesService())
+}

@@ -58,8 +58,9 @@ struct ContentView: View {
                     QueueView(audioPlayer: audioPlayer)
                 }
             }
+            .frame(maxHeight: .infinity) // allow HStack to take remaining vertical space
         }
-        .frame(minWidth: 900, minHeight: 600)
+        .frame(minWidth: 900, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         // The LibraryLocationPicker component presents the alert and open panel when needed
         LibraryLocationPicker(library: library)
     }

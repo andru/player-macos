@@ -30,16 +30,25 @@ struct LibraryView: View {
             Divider()
             
             // Content
-            ScrollView {
+            Group {
                 if selectedView == .albums || selectedCollection != nil {
-                    AlbumsView(selectedAlbum: $selectedAlbum, filteredAlbums: filteredAlbums, audioPlayer: audioPlayer)
+                    ScrollView {
+                        AlbumsView(selectedAlbum: $selectedAlbum, filteredAlbums: filteredAlbums, audioPlayer: audioPlayer)
+                    }
                 } else if selectedView == .artists {
-                    ArtistsView(filteredArtists: filteredArtists)
+                    ScrollView {
+                        ArtistsView(filteredArtists: filteredArtists)
+                    }
                 } else {
+                    // SongsView contains a SwiftUI Table which provides its own scrolling
+                    // and should not be wrapped in an outer ScrollView if we want it to
+                    // expand to fill available space.
                     SongsView(filteredTracks: filteredTracks, audioPlayer: audioPlayer)
                 }
             }
+            .frame(maxHeight: .infinity)
         }
+        .frame(maxHeight: .infinity)
     
     }
     
@@ -49,7 +58,7 @@ struct LibraryView: View {
         }
         return selectedView.rawValue
     }
-    
+
     private var filteredTracks: [Track] {
         var tracks = library.tracks
         
@@ -68,7 +77,7 @@ struct LibraryView: View {
         return tracks
     }
     
-//    private var gridView: some 
+//    private var gridView: some
     
     
     private var filteredAlbums: [Album] {

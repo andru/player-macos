@@ -8,9 +8,15 @@ struct SongsView: View {
     
     var body: some View {
         
-        TrackTableView(filteredTracks: filteredTracks, audioPlayer: audioPlayer)
-            
+            TrackTableView(filteredTracks: filteredTracks, audioPlayer: audioPlayer)
+
     }
         
     
+}
+
+#Preview {
+    ContentView()
+        .environmentObject(LibraryManager())
+        .environmentObject(PreferencesService())
 }
