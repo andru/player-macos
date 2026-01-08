@@ -198,11 +198,16 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
     }
     
-    func upsertAlbum(artistId: Int64, title: String, albumArtistName: String?, composerName: String?, isCompilation: Bool) async throws -> Album {
+    func upsertAlbum(artistId: Int64, title: String, artistName: String, albumArtistName: String?, composerName: String?, isCompilation: Bool) async throws -> Album {
         if let existing = try await findAlbum(artistId: artistId, title: title) {
             // Update fields if they've changed
             var updated = existing
             var needsUpdate = false
+            
+            if updated.artistName != artistName {
+                updated.artistName = artistName
+                needsUpdate = true
+            }
             
             if updated.albumArtistName != albumArtistName {
                 updated.albumArtistName = albumArtistName

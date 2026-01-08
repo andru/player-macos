@@ -4,7 +4,7 @@ struct DatabaseMigrations {
     static func makeMigrator() -> DatabaseMigrator {
         var migrator = DatabaseMigrator()
         // register each migration (add new registrations as you add new migration files)
-        migrator.registerV1()
+//        migrator.registerV1()
         migrator.registerV2PhysicalMedia()
         return migrator
     }

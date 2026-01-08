@@ -5,6 +5,7 @@ import Foundation
 struct Album: Identifiable, Hashable {
     let id: Int64
     var artistId: Int64
+    var artistName: String
     var title: String
     var sortTitle: String?
     var albumArtistName: String?
