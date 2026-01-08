@@ -7,10 +7,10 @@ struct TrackTableView: View {
     @EnvironmentObject var preferences: PreferencesService
     let filteredTracks: [Track]
     let audioPlayer: AudioPlayer
+    @Binding var sortOrder: [KeyPathComparator<Track>]
     
-    // State for selection and sorting
+    // State for selection
     @State private var selection = Set<Track.ID>()
-    @State private var sortOrder = [KeyPathComparator(\Track.title)]
     
     var body: some View {
         Table(filteredTracks, selection: $selection, sortOrder: $sortOrder) {

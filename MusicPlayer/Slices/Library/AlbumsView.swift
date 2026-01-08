@@ -7,7 +7,13 @@ struct AlbumsView: View {
     var filteredAlbums: [Album]
     let audioPlayer: AudioPlayer
     @State private var displayMode: DisplayMode = .grid
-
+    @State private var sortOrder = [KeyPathComparator(\Track.title)]
+    
+    private var sortedTracks: [Track] {
+        let allTracks = filteredAlbums.flatMap { $0.tracks }
+        return allTracks.sorted(using: sortOrder)
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // View mode toggle
@@ -53,8 +59,11 @@ struct AlbumsView: View {
                 }
                 .padding()
             } else {
-                TrackTableView(filteredTracks: filteredAlbums.flatMap{ item in item.tracks }, audioPlayer: audioPlayer)
-                               
+                TrackTableView(
+                    filteredTracks: sortedTracks,
+                    audioPlayer: audioPlayer,
+                    sortOrder: $sortOrder
+                )
             }
         }.onAppear {
             loadViewMode()
