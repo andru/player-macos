@@ -125,8 +125,8 @@ private struct TableWithDoubleClick: NSViewRepresentable {
             
             tableColumn.resizingMask = .userResizingMask
             
-            // Set sort descriptor for sortable columns
-            if column.sortKeyPath != nil || column.sortKeyPathDouble != nil {
+            // Set sort descriptor for sortable columns (all columns except "number" are sortable)
+            if column.id != "number" {
                 let sortDescriptor = NSSortDescriptor(key: column.id, ascending: true)
                 tableColumn.sortDescriptorPrototype = sortDescriptor
             }
