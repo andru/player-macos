@@ -71,14 +71,11 @@ struct TrackTableView: View {
                 }
             }
         } primaryAction: { items in
-            // Double-click action (primaryAction is called on double-click in macOS 13+)
+            // Double-click action (primaryAction is called on double-click)
             let selectedTracks = filteredTracks.filter { items.contains($0.id) }
             if !selectedTracks.isEmpty {
                 audioPlayer.queueTracks(selectedTracks, startPlaying: true, behavior: preferences.playbackBehavior)
             }
-        }
-        .onChange(of: sortOrder) { _ in
-            // Sort order is automatically handled by Table
         }
     }
 }
