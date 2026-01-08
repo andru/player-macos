@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Core Domain Model (iOS/macOS portable)
 
-struct Artist: Identifiable, Hashable, Codable {
+struct Artist: Identifiable, Hashable {
     let id: Int64
     var name: String
     var sortName: String?

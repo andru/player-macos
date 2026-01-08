@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Core Domain Model (iOS/macOS portable)
 
-struct Track: Identifiable, Codable, Hashable {
+struct Track: Identifiable, Hashable {
     let id: Int64
     var releaseId: Int64
     var discNumber: Int

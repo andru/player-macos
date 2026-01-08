@@ -170,9 +170,14 @@ class MusicImportService {
         if let formats: [AVMetadataFormat] = try? await asset.load(.availableMetadataFormats) {
             for format in formats {
                 if let fmtItems = try? await asset.loadMetadata(for: format) {
-                    albumArtistName = albumArtistName ?? await extractAlbumArtist(from: fmtItems)
-                    composerName = composerName ?? await extractComposer(from: fmtItems)
-                    
+                    if albumArtistName == nil {
+                        albumArtistName = await extractAlbumArtist(from: fmtItems)
+                    }
+
+                    if composerName == nil {
+                        composerName = await extractComposer(from: fmtItems)
+                    }
+
                     for item in fmtItems {
                         let valueString = await extractStringValue(from: item)
                         

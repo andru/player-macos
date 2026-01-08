@@ -10,7 +10,7 @@ enum ReleaseFormat: String, Codable, CaseIterable {
     case other = "Other"
 }
 
-struct Release: Identifiable, Hashable, Codable {
+struct Release: Identifiable, Hashable {
     let id: Int64
     var albumId: Int64
     var format: ReleaseFormat

@@ -63,7 +63,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
             }
             
             if includeAlbums {
-                let albums = try loadAlbums(forArtistId: id)
+                let albums = try loadAlbums(forArtistId: id, withDb: db)
                 return record.toArtist(albums: albums)
             }
             
@@ -77,7 +77,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            var record = ArtistRecord(from: artist)
+            let record = ArtistRecord(from: artist)
             try record.save(db)
             return record.toArtist(albums: artist.albums)
         }
@@ -143,6 +143,15 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
     }
     
+    // for using inside an already running queue
+    func loadAlbums(forArtistId artistId: Int64, withDb: Database) throws -> [Album] {
+        let records = try AlbumRecord
+            .filter(Column("artistId") == artistId)
+            .order(Column("title"))
+            .fetchAll(withDb)
+        return records.map { $0.toAlbum() }
+    }
+    
     func loadAlbum(id: Int64, includeReleases: Bool) async throws -> Album? {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
@@ -154,7 +163,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
             }
             
             if includeReleases {
-                let releases = try loadReleases(forAlbumId: id)
+                let releases = try loadReleases(forAlbumId: id, withDb: db)
                 return record.toAlbum(releases: releases)
             }
             
@@ -168,7 +177,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            var record = AlbumRecord(from: album)
+            let record = AlbumRecord(from: album)
             try record.save(db)
             return record.toAlbum(releases: album.releases, artist: album.artist)
         }
@@ -249,12 +258,16 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.read { db in
-            let records = try ReleaseRecord
-                .filter(Column("albumId") == albumId)
-                .order(Column("format"), Column("year"))
-                .fetchAll(db)
-            return records.map { $0.toRelease() }
+            try loadReleases(forAlbumId: albumId, withDb: db)
         }
+    }
+    
+    func loadReleases(forAlbumId albumId: Int64, withDb: Database) throws -> [Release] {
+        let records = try ReleaseRecord
+            .filter(Column("albumId") == albumId)
+            .order(Column("format"), Column("year"))
+            .fetchAll(withDb)
+        return records.map { $0.toRelease() }
     }
     
     func loadRelease(id: Int64, includeTracks: Bool) async throws -> Release? {
@@ -268,7 +281,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
             }
             
             if includeTracks {
-                let tracks = try loadTracks(forReleaseId: id, orderByDiscAndTrackNumber: true)
+                let tracks = try loadTracks(forReleaseId: id, orderByDiscAndTrackNumber: true, withDb: db)
                 return record.toRelease(tracks: tracks)
             }
             
@@ -282,7 +295,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            var record = ReleaseRecord(from: release)
+            let record = ReleaseRecord(from: release)
             try record.save(db)
             return record.toRelease(tracks: release.tracks, album: release.album)
         }
@@ -396,15 +409,20 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.read { db in
-            var query = TrackRecord.filter(Column("releaseId") == releaseId)
-            
-            if orderByDiscAndTrackNumber {
-                query = query.order(Column("discNumber"), Column("trackNumber"))
-            }
-            
-            let records = try query.fetchAll(db)
-            return records.map { $0.toTrack() }
+            try loadTracks(forReleaseId: releaseId, orderByDiscAndTrackNumber: orderByDiscAndTrackNumber, withDb: db)
         }
+    }
+    
+    func loadTracks(forReleaseId releaseId: Int64, orderByDiscAndTrackNumber: Bool, withDb: Database) throws -> [Track] {
+        var query = TrackRecord.filter(Column("releaseId") == releaseId)
+        
+        if orderByDiscAndTrackNumber {
+            query = query.order(Column("discNumber"), Column("trackNumber"))
+        }
+        
+        let records = try query.fetchAll(withDb)
+        return records.map { $0.toTrack() }
+
     }
     
     func loadTrack(id: Int64, includeDigitalFiles: Bool) async throws -> Track? {
@@ -418,7 +436,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
             }
             
             if includeDigitalFiles {
-                let digitalFiles = try loadDigitalFiles(forTrackId: id)
+                let digitalFiles = try loadDigitalFiles(forTrackId: id, withDb: db)
                 return record.toTrack(digitalFiles: digitalFiles)
             }
             
@@ -432,7 +450,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            var record = TrackRecord(from: track)
+            let record = TrackRecord(from: track)
             try record.save(db)
             return record.toTrack(digitalFiles: track.digitalFiles, release: track.release)
         }
@@ -445,7 +463,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         
         try await dbQueue.write { db in
             for track in tracks {
-                var record = TrackRecord(from: track)
+                let record = TrackRecord(from: track)
                 try record.save(db)
             }
         }
@@ -477,6 +495,13 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
     }
     
+    func loadDigitalFiles(forTrackId trackId: Int64, withDb: Database) throws -> [DigitalFile] {
+            let records = try DigitalFileRecord
+                .filter(Column("trackId") == trackId)
+                .fetchAll(withDb)
+            return records.map { $0.toDigitalFile() }
+    }
+    
     func loadDigitalFile(id: Int64) async throws -> DigitalFile? {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
@@ -496,7 +521,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            var record = DigitalFileRecord(from: digitalFile)
+            let record = DigitalFileRecord(from: digitalFile)
             try record.save(db)
             return record.toDigitalFile(track: digitalFile.track)
         }
