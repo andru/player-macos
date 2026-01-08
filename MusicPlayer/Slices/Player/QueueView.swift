@@ -129,7 +129,7 @@ struct QueueItemView: View {
                         .lineLimit(1)
                         .foregroundColor(item.hasBeenPlayed ? .secondary : .primary)
                     
-                    Text(item.track.artist)
+                    Text(item.track.artistName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)

@@ -3,11 +3,9 @@ import Foundation
 
 @MainActor
 class LibraryService: ObservableObject, LibraryServiceProtocol {
-    // Persistent library state - now loaded from database
+    // Persistent library state
     @Published var tracks: [Track] = []
     @Published var collections: [Collection] = []
-    @Published var albums: [Album] = []
-    @Published var artists: [Artist] = []
 
     // UI / setup state
     @Published var needsLibraryLocationSetup = false
@@ -26,6 +24,48 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
     
     // Supported audio file extensions
     private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
+
+    // MARK: - Derived views
+    var albums: [Album] {
+        var albumDict: [String: Album] = [:]
+
+        for track in tracks {
+            // Use Album's shared key generation for consistency
+            let key = Album.makeKey(name: track.album, albumArtist: track.albumArtist, artist: track.artist)
+            if var album = albumDict[key] {
+                album.tracks.append(track)
+                albumDict[key] = album
+            } else {
+                let album = Album(
+                    name: track.album,
+                    artist: track.artist,
+                    albumArtist: track.albumArtist,
+                    artworkURL: track.artworkURL,
+                    tracks: [track],
+                    year: track.year
+                )
+                albumDict[key] = album
+            }
+        }
+
+        return Array(albumDict.values).sorted { $0.name < $1.name }
+    }
+
+    var artists: [Artist] {
+        var artistDict: [String: Artist] = [:]
+
+        for album in albums {
+            if var artist = artistDict[album.artist] {
+                artist.albums.append(album)
+                artistDict[album.artist] = artist
+            } else {
+                let artist = Artist(name: album.artist, albums: [album])
+                artistDict[album.artist] = artist
+            }
+        }
+
+        return Array(artistDict.values).sorted { $0.name < $1.name }
+    }
 
     // MARK: - Init
     init() {
@@ -70,18 +110,12 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
     // MARK: - Public API
     func addTrack(_ track: Track) {
         tracks.append(track)
-        // Reload albums and artists to reflect the change
-        Task {
-            await loadLibraryData()
-        }
+        saveLibrary()
     }
 
     func removeTrack(_ track: Track) {
         tracks.removeAll { $0.id == track.id }
-        // Reload albums and artists to reflect the change
-        Task {
-            await loadLibraryData()
-        }
+        saveLibrary()
     }
 
     func addCollection(_ collection: Collection) {
@@ -213,65 +247,23 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
         // Try to open/initialize the database
         try await databaseManager.openDatabase(at: bundleURL)
         
-        // Load all data from the database
-        await loadLibraryData()
-    }
-    
-    private func loadLibraryData() async {
+        // Check if we need to migrate from JSON
+        
+        // Try to load from database first
         do {
-            // Load all entities from the database
             let loadedTracks = try await databaseManager.loadTracks()
             let loadedCollections = try await databaseManager.loadCollections()
-            let loadedArtists = try await databaseManager.loadArtists()
-            let loadedAlbums = try await databaseManager.loadAlbums()
             
-            // Load releases for each album
-            var albumsWithReleases: [Album] = []
-            for var album in loadedAlbums {
-                let releases = try await databaseManager.loadReleases(forAlbumId: album.id)
-                
-                // Load tracks for each release
-                var releasesWithTracks: [Release] = []
-                for var release in releases {
-                    let tracks = try await databaseManager.loadTracks(forReleaseId: release.id, orderByDiscAndTrackNumber: true)
-                    
-                    // Load digital files for each track
-                    var tracksWithFiles: [Track] = []
-                    for var track in tracks {
-                        let digitalFiles = try await databaseManager.loadDigitalFiles(forTrackId: track.id)
-                        track.digitalFiles = digitalFiles
-                        tracksWithFiles.append(track)
-                    }
-                    
-                    release.tracks = tracksWithFiles
-                    releasesWithTracks.append(release)
-                }
-                
-                album.releases = releasesWithTracks
-                albumsWithReleases.append(album)
+            // If database has data or JSON doesn't exist, we're done
+            if !loadedTracks.isEmpty || !loadedCollections.isEmpty {
+                self.tracks = loadedTracks
+                self.collections = loadedCollections
+                return
             }
-            
-            // Update artists with their albums
-            var artistsWithAlbums: [Artist] = []
-            for var artist in loadedArtists {
-                let artistAlbums = albumsWithReleases.filter { $0.artistId == artist.id }
-                artist.albums = artistAlbums
-                artistsWithAlbums.append(artist)
-            }
-            
-            // Flatten all tracks from all releases
-            let allTracks = albumsWithReleases.flatMap { album in
-                album.releases.flatMap { $0.tracks }
-            }
-            
-            // Update published properties
-            self.tracks = allTracks
-            self.collections = loadedCollections
-            self.albums = albumsWithReleases
-            self.artists = artistsWithAlbums
         } catch {
             print("LibraryManager: error loading from database: \(error)")
         }
+
     }
 
     // Task management for saves
@@ -372,15 +364,11 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
     // MARK: - Track creation and metadata helpers
     func importFiles(urls: [URL]) async {
         for url in urls {
-            do {
-                let track = try await databaseManager.importAudioFile(url: url)
-                print("Imported: \(track.title)")
-            } catch {
-                print("Failed to import \(url.lastPathComponent): \(error)")
+            if let track = await createTrack(from: url) {
+                tracks.append(track)
             }
         }
-        // Reload library to reflect changes
-        await loadLibraryData()
+        saveLibrary()
     }
     
     func importDirectory(url: URL) async {
@@ -400,16 +388,11 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
         
         // Import all found files
         for fileURL in musicFiles {
-            do {
-                let track = try await databaseManager.importAudioFile(url: fileURL)
-                print("Imported: \(track.title)")
-            } catch {
-                print("Failed to import \(fileURL.lastPathComponent): \(error)")
+            if let track = await createTrack(from: fileURL) {
+                tracks.append(track)
             }
         }
-        
-        // Reload library to reflect changes
-        await loadLibraryData()
+        saveLibrary()
     }
     
     private func findMusicFiles(in directory: URL) -> [URL] {
@@ -439,6 +422,145 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
         }
         
         return musicFiles
+    }
+
+    private func createTrack(from url: URL) async -> Track? {
+        let asset = AVAsset(url: url)
+
+        // Extract metadata
+        var title = url.deletingPathExtension().lastPathComponent
+        var artist = "Unknown Artist"
+        var album = "Unknown Album"
+        var year: Int? = nil
+        var trackNumber: Int? = nil
+
+        // Load duration and metadata using availability-safe helper
+        let (duration, metadataItems) = await loadDurationAndMetadata(for: asset)
+        let albumArtist: String? = await extractAlbumArtist(from: metadataItems)
+
+        for item in metadataItems {
+            // Prefer modern async loading on macOS 13+
+            var valueString: String? = nil
+        
+            if let sv: String = try? await item.load(.stringValue) {
+                valueString = sv
+            } else if let v = try? await item.load(.value) {
+                if let s = v as? String { valueString = s }
+                else if let n = v as? NSNumber { valueString = n.stringValue }
+                else { valueString = String(describing: v) }
+            }
+        
+
+            let key = item.commonKey?.rawValue
+            guard let keyUnwrapped = key, let value = valueString else { continue }
+
+            switch keyUnwrapped {
+            case "title":
+                title = value
+            case "artist":
+                artist = value
+            case "albumName":
+                album = value
+            case "year":
+                year = value.isEmpty ? nil : Int(value)
+            case "trackNumber":
+                trackNumber = value.isEmpty ? nil : Int(value)
+            default:
+                break
+            }
+        }
+
+        var track = Track(
+            title: title,
+            artist: artist,
+            album: album,
+            albumArtist: albumArtist,
+            duration: duration,
+            fileURL: url,
+            artworkURL: nil,
+            artworkData: nil,
+            genre: nil,
+            year: year,
+            trackNumber: trackNumber
+        )
+        
+        // Load artwork from file metadata and cache it
+        await track.loadArtworkFromMetadataIfNeeded()
+        
+        return track
+    }
+
+    private func loadDurationAndMetadata(for asset: AVAsset) async -> (TimeInterval, [AVMetadataItem]) {
+        var duration: TimeInterval = 0
+        var items: [AVMetadataItem] = []
+
+        
+        // Load duration
+       if let cmTime: CMTime = try? await asset.load(.duration) {
+           let seconds = CMTimeGetSeconds(cmTime)
+           if seconds.isFinite { duration = seconds }
+       }
+        
+        // Load common metadata
+        if let common: [AVMetadataItem] = try? await asset.load(.commonMetadata) {
+            items.append(contentsOf: common)
+        }
+
+        // Load format-specific metadata by enumerating available formats
+        if let formats: [AVMetadataFormat] = try? await asset.load(.availableMetadataFormats) {
+            for format in formats {
+                // `metadata(forFormat:)` is safe to call after we've loaded the formats
+                let fmtItems = try? await asset.loadMetadata(for: format)
+                if (fmtItems != nil) {
+                    items.append(contentsOf: fmtItems!)
+                }
+            }
+        }
+
+
+        return (duration, items)
+    }
+    
+    func extractAlbumArtist(from metadataItems: [AVMetadataItem]) async -> String? {
+        func stringValue(from item: AVMetadataItem) async -> String? {
+            if let sv: String = try? await item.load(.stringValue) {
+                return sv
+            }
+            if let v = try? await item.load(.value) {
+                if let s = v as? String { return s }
+                if let n = v as? NSNumber { return n.stringValue }
+                return String(describing: v)
+            }
+            return nil
+        }
+
+        for item in metadataItems {
+            // Prefer commonKey if present (may not exist for album artist)
+            if let ck = item.commonKey?.rawValue, ck == "albumArtist", let v = await stringValue(from: item) {
+                return v
+            }
+
+            // ID3v2: Album artist frame is "TPE2"
+            if item.keySpace == .id3 {
+                if let key = item.key as? String, key == "TPE2", let v = await stringValue(from: item) {
+                    return v
+                }
+            }
+
+            // MP4 / iTunes metadata: album artist key is "aART"
+            if item.keySpace == .iTunes {
+                if let key = item.key as? String, key == "aART", let v = await stringValue(from: item) {
+                    return v
+                }
+            }
+
+            // Some files may expose album artist via the item's identifier
+            if let id = item.identifier?.rawValue.lowercased(), id.contains("albumartist") || id.contains("aart"), let v = await stringValue(from: item) {
+                return v
+            }
+        }
+
+        return nil
     }
     
     // MARK: - Cleanup

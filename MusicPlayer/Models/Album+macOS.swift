@@ -6,13 +6,13 @@ import AppKit
 extension Album {
     /// Get the artwork as an NSImage (macOS only)
     var artwork: NSImage? {
-        // Prefer artworkData if available
-        if let artworkData = artworkData {
-            return NSImage(data: artworkData)
-        }
-        // Fall back to first track's artwork
-        if let firstTrackArtwork = tracks.first?.artwork {
-            return firstTrackArtwork
+        // Get artwork from first track's first digital file
+        for release in releases {
+            for track in release.tracks {
+                if let artworkData = track.digitalFiles.first?.artworkData {
+                    return NSImage(data: artworkData)
+                }
+            }
         }
         return nil
     }

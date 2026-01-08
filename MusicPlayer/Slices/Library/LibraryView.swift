@@ -62,8 +62,8 @@ struct LibraryView: View {
         if !searchText.isEmpty {
             tracks = tracks.filter { track in
                 track.title.localizedCaseInsensitiveContains(searchText) ||
-                track.artist.localizedCaseInsensitiveContains(searchText) ||
-                track.album.localizedCaseInsensitiveContains(searchText)
+                track.artistName.localizedCaseInsensitiveContains(searchText) ||
+                (track.release?.album?.title ?? "").localizedCaseInsensitiveContains(searchText)
             }
         }
         
@@ -78,8 +78,8 @@ struct LibraryView: View {
         
         if !searchText.isEmpty {
             albums = albums.filter { album in
-                album.name.localizedCaseInsensitiveContains(searchText) ||
-                album.artist.localizedCaseInsensitiveContains(searchText)
+                album.title.localizedCaseInsensitiveContains(searchText) ||
+                album.title.localizedCaseInsensitiveContains(searchText)
             }
         }
         

@@ -30,14 +30,20 @@ class AudioPlayer: NSObject, ObservableObject {
         // Stop current playback
         stop()
         
+        // Get the file URL from the first digital file
+        guard let fileURL = track.digitalFiles.first?.fileURL else {
+            print("Error: No digital file available for track: \(track.title)")
+            return
+        }
+        
         do {
             // Create and configure audio player
-            player = try AVAudioPlayer(contentsOf: track.fileURL)
+            player = try AVAudioPlayer(contentsOf: fileURL)
             player?.prepareToPlay()
             player?.delegate = self
             
             playerState.currentTrack = track
-            playerState.duration = track.duration
+            playerState.duration = track.duration ?? 0
             
             // Start playback
             player?.play()

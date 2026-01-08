@@ -30,7 +30,7 @@ struct NowPlayingWidget: View {
                         .font(.headline)
                         .lineLimit(1)
                     
-                    Text("\(track.artist) • \(track.album)")
+                    Text("\(track.artistName) • \(track.release?.album?.title ?? "Unknown Album")")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .lineLimit(1)

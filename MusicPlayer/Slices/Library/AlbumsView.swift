@@ -10,7 +10,9 @@ struct AlbumsView: View {
     @StateObject private var viewModel = SongsViewModel()
     
     private var sortedTracks: [Track] {
-        let allTracks = filteredAlbums.flatMap { $0.tracks }
+        let allTracks = filteredAlbums.flatMap { album in
+            album.releases.flatMap { $0.tracks }
+        }
         return viewModel.sortedTracks(from: allTracks)
     }
     
@@ -101,6 +103,10 @@ struct AlbumGridItem: View {
     let audioPlayer: AudioPlayer?
     let library: LibraryService?
     
+    private var trackCount: Int {
+        album.releases.reduce(0) { $0 + $1.tracks.count }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: action) {
@@ -131,16 +137,16 @@ struct AlbumGridItem: View {
             }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(album.name)
+                Text(album.title)
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text(album.albumArtist ?? album.artist)
+                Text(album.albumArtistName ?? album.artist?.name ?? "Unknown Artist")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                 
-                Text("\(album.tracks.count) songs")
+                Text("\(trackCount) songs")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

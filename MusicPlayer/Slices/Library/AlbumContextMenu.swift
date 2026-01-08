@@ -5,23 +5,27 @@ struct AlbumContextMenu: View {
     let audioPlayer: AudioPlayer
     let library: LibraryService?
     
+    private var allTracks: [Track] {
+        album.releases.flatMap { $0.tracks }
+    }
+    
     var body: some View {
         Button("Play Now") {
-            audioPlayer.queueTracks(album.tracks, startPlaying: true)
+            audioPlayer.queueTracks(allTracks, startPlaying: true)
         }
         
         Button("Next in Queue") {
-            audioPlayer.addToQueueNext(album.tracks)
+            audioPlayer.addToQueueNext(allTracks)
         }
         
         Button("End of Queue") {
-            audioPlayer.addToQueueEnd(album.tracks)
+            audioPlayer.addToQueueEnd(allTracks)
         }
         
         Divider()
         
         Button("Favourite") {
-            album.tracks.forEach { library?.toggleFavorite(track: $0) }
+            allTracks.forEach { library?.toggleFavorite(track: $0) }
         }
         
         Button("Add to Collection") {
@@ -37,16 +41,16 @@ struct AlbumContextMenu: View {
         Divider()
         
         Button("Remove from Library") {
-            album.tracks.forEach { library?.removeFromLibrary(track: $0) }
+            allTracks.forEach { library?.removeFromLibrary(track: $0) }
         }
         
         Button("Refresh from Source") {
-            album.tracks.forEach { library?.refreshFromSource(track: $0) }
+            allTracks.forEach { library?.refreshFromSource(track: $0) }
         }
         
         Button("Edit Info") {
             // Edit first track or album info
-            if let firstTrack = album.tracks.first {
+            if let firstTrack = allTracks.first {
                 library?.editInfo(track: firstTrack)
             }
         }

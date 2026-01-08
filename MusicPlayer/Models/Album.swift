@@ -3,31 +3,51 @@ import Foundation
 // MARK: - Core Domain Model (iOS/macOS portable)
 
 struct Album: Identifiable, Hashable {
-    var id: String {
-        // Use shared key generation to ensure consistency
-        Album.makeKey(name: name, albumArtist: albumArtist, artist: artist)
-    }
-    var name: String
-    var artist: String
-    var albumArtist: String?
-    var artworkURL: URL?
-    var artworkData: Data?
-    var tracks: [Track]
-    var year: Int?
+    let id: Int64
+    var artistId: Int64
+    var title: String
+    var sortTitle: String?
+    var albumArtistName: String?
+    var composerName: String?
+    var isCompilation: Bool
+    var createdAt: Date
+    var updatedAt: Date
     
-    init(name: String, artist: String, albumArtist: String? = nil, artworkURL: URL? = nil, artworkData: Data? = nil, tracks: [Track] = [], year: Int? = nil) {
-        self.name = name
+    // Transient properties (not persisted, loaded via relationships)
+    var releases: [Release]
+    var artist: Artist?
+    
+    init(
+        id: Int64,
+        artistId: Int64,
+        title: String,
+        sortTitle: String? = nil,
+        albumArtistName: String? = nil,
+        composerName: String? = nil,
+        isCompilation: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        releases: [Release] = [],
+        artist: Artist? = nil
+    ) {
+        self.id = id
+        self.artistId = artistId
+        self.title = title
+        self.sortTitle = sortTitle
+        self.albumArtistName = albumArtistName
+        self.composerName = composerName
+        self.isCompilation = isCompilation
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.releases = releases
         self.artist = artist
-        self.albumArtist = albumArtist
-        self.artworkURL = artworkURL
-        self.artworkData = artworkData
-        self.tracks = tracks
-        self.year = year
     }
     
-    /// Generate a stable key for an album based on its name and artist
-    /// Uses :: delimiter to avoid collision issues with hyphens in metadata
-    static func makeKey(name: String, albumArtist: String?, artist: String) -> String {
-        "\(name)::\(albumArtist ?? artist)"
+    var trackCount: Int {
+        releases.reduce(0) { $0 + $1.tracks.count }
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, artistId, title, sortTitle, albumArtistName, composerName, isCompilation, createdAt, updatedAt
     }
 }

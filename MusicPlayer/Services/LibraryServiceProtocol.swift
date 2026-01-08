@@ -4,12 +4,10 @@ import Foundation
 protocol LibraryServiceProtocol: ObservableObject {
     var tracks: [Track] { get set }
     var collections: [Collection] { get set }
+    var albums: [Album] { get set }
+    var artists: [Artist] { get set }
     var libraryURL: URL? { get set }
     var needsLibraryLocationSetup: Bool { get set }
-
-    // Derived
-    var albums: [Album] { get }
-    var artists: [Artist] { get }
 
     // Actions
     func importFiles(urls: [URL]) async
