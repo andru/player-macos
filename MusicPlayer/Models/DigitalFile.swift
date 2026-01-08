@@ -2,9 +2,9 @@ import Foundation
 
 // MARK: - Core Domain Model (iOS/macOS portable)
 
+/// Local-only entity representing a file on disk
 struct DigitalFile: Identifiable, Codable, Hashable {
     let id: Int64
-    var trackId: Int64
     var fileURL: URL
     var bookmarkData: Data?
     var fileHash: String?
@@ -15,11 +15,10 @@ struct DigitalFile: Identifiable, Codable, Hashable {
     var artworkData: Data?
     
     // Transient properties
-    var track: Track?
+    var recordings: [Recording]
     
     init(
         id: Int64,
-        trackId: Int64,
         fileURL: URL,
         bookmarkData: Data? = nil,
         fileHash: String? = nil,
@@ -28,10 +27,9 @@ struct DigitalFile: Identifiable, Codable, Hashable {
         lastScannedAt: Date? = nil,
         metadataJSON: String? = nil,
         artworkData: Data? = nil,
-        track: Track? = nil
+        recordings: [Recording] = []
     ) {
         self.id = id
-        self.trackId = trackId
         self.fileURL = fileURL
         self.bookmarkData = bookmarkData
         self.fileHash = fileHash
@@ -40,11 +38,11 @@ struct DigitalFile: Identifiable, Codable, Hashable {
         self.lastScannedAt = lastScannedAt
         self.metadataJSON = metadataJSON
         self.artworkData = artworkData
-        self.track = track
+        self.recordings = recordings
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, trackId, fileURL, bookmarkData, fileHash, fileSize
+        case id, fileURL, bookmarkData, fileHash, fileSize
         case addedAt, lastScannedAt, metadataJSON, artworkData
     }
 }

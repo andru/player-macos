@@ -2,54 +2,48 @@ import Foundation
 
 // MARK: - Core Domain Model (iOS/macOS portable)
 
+/// A Recording as sequenced on a Medium
 struct Track: Identifiable, Hashable {
     let id: Int64
-    var releaseId: Int64
-    var discNumber: Int
-    var trackNumber: Int?
-    var title: String
-    var duration: TimeInterval?
-    var artistName: String
-    var albumArtistName: String?
-    var composerName: String?
-    var genre: String?
+    var mediumId: Int64
+    var recordingId: Int64
+    var position: Int  // track number on medium
+    var titleOverride: String?  // if different from recording title
     var createdAt: Date
     var updatedAt: Date
     
     // Transient properties (not persisted, loaded via relationships)
-    var digitalFiles: [DigitalFile]
-    var release: Release?
+    var recording: Recording?
+    var medium: Medium?
     
     init(
         id: Int64,
-        releaseId: Int64,
-        discNumber: Int = 1,
-        trackNumber: Int? = nil,
-        title: String,
-        duration: TimeInterval? = nil,
-        artistName: String,
-        albumArtistName: String? = nil,
-        composerName: String? = nil,
-        genre: String? = nil,
+        mediumId: Int64,
+        recordingId: Int64,
+        position: Int,
+        titleOverride: String? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
-        digitalFiles: [DigitalFile] = [],
-        release: Release? = nil
+        recording: Recording? = nil,
+        medium: Medium? = nil
     ) {
         self.id = id
-        self.releaseId = releaseId
-        self.discNumber = discNumber
-        self.trackNumber = trackNumber
-        self.title = title
-        self.duration = duration
-        self.artistName = artistName
-        self.albumArtistName = albumArtistName
-        self.composerName = composerName
-        self.genre = genre
+        self.mediumId = mediumId
+        self.recordingId = recordingId
+        self.position = position
+        self.titleOverride = titleOverride
         self.createdAt = createdAt
         self.updatedAt = updatedAt
-        self.digitalFiles = digitalFiles
-        self.release = release
+        self.recording = recording
+        self.medium = medium
+    }
+    
+    var title: String {
+        titleOverride ?? recording?.title ?? "Unknown"
+    }
+    
+    var duration: TimeInterval? {
+        recording?.duration
     }
 
     var formattedDuration: String {
@@ -60,12 +54,11 @@ struct Track: Identifiable, Hashable {
     }
     
     var hasDigitalFiles: Bool {
-        !digitalFiles.isEmpty
+        recording?.hasDigitalFiles ?? false
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, releaseId, discNumber, trackNumber, title, duration
-        case artistName, albumArtistName, composerName, genre, createdAt, updatedAt
+        case id, mediumId, recordingId, position, titleOverride, createdAt, updatedAt
     }
 }
 
