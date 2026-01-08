@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
     @StateObject private var audioPlayer = AudioPlayer()
     @State private var selectedView: LibraryViewMode = .albums
@@ -68,6 +68,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(LibraryManager())
+        .environmentObject(LibraryService())
         .environmentObject(PreferencesService())
 }

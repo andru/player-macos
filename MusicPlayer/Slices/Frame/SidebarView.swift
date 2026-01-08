@@ -1,9 +1,10 @@
 import SwiftUI
 
 struct SidebarView: View {
+    @EnvironmentObject var library: LibraryService
     @Binding var selectedView: LibraryViewMode
     @Binding var selectedCollection: Collection?
-    @ObservedObject var library: LibraryManager
+
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

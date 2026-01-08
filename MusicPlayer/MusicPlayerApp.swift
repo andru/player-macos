@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct MusicPlayerApp: App {
-    @StateObject private var library = LibraryManager()
+    @StateObject private var library = LibraryService()
     @StateObject private var preferences = PreferencesService()
     
     var body: some Scene {

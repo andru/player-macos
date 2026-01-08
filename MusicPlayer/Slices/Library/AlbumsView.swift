@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AlbumsView: View {
-    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
     @Binding var selectedAlbum: Album?
     var filteredAlbums: [Album]
@@ -97,7 +97,7 @@ struct AlbumGridItem: View {
     let album: Album
     let action: () -> Void
     let audioPlayer: AudioPlayer?
-    let library: LibraryManager?
+    let library: LibraryService?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 struct LibraryLocationPicker: View {
-    @ObservedObject var library: LibraryManager
+    @ObservedObject var library: LibraryService
 
     var body: some View {
         // Invisible view used solely to present an alert and, when confirmed, open an NSOpenPanel
@@ -45,5 +45,5 @@ struct LibraryLocationPicker: View {
 
 #Preview {
     // Provide a preview using a LibraryManager instance.
-    LibraryLocationPicker(library: LibraryManager())
+    LibraryLocationPicker(library: LibraryService())
 }

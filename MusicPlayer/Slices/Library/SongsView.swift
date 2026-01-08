@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SongsView: View {
-    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
     @StateObject private var viewModel = SongsViewModel()
     var filteredTracks: [Track]
@@ -18,6 +18,6 @@ struct SongsView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(LibraryManager())
+        .environmentObject(LibraryService())
         .environmentObject(PreferencesService())
 }

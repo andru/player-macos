@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct LibraryView: View {
-    @ObservedObject var library: LibraryManager
-    var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
     @Binding var selectedView: LibraryViewMode
     @Binding var selectedCollection: Collection?

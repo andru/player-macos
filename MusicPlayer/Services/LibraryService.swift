@@ -2,7 +2,7 @@ import Foundation
 @preconcurrency import AVFoundation
 
 @MainActor
-class LibraryManager: ObservableObject {
+class LibraryService: ObservableObject, LibraryServiceProtocol {
     // Persistent library state
     @Published var tracks: [Track] = []
     @Published var collections: [Collection] = []
@@ -17,7 +17,7 @@ class LibraryManager: ObservableObject {
     private var isSecurityScoped = false
     private var securityScopedURL: URL? = nil
     private var accessedDirectories: [URL] = []
-    private let databaseManager = DatabaseManager()
+    private let databaseManager = DatabaseService()
     
     // Task management for proper lifecycle
     private var initializationTask: Task<Void, Never>?
@@ -573,11 +573,4 @@ class LibraryManager: ObservableObject {
 //        stopAccessingDirectories()
     }
 
-}
-
-// MARK: - Library file structure used on disk
-private struct LibraryFile: Codable {
-    var version: Int
-    var tracks: [Track]
-    var collections: [Collection]
 }

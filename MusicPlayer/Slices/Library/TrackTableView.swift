@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Track Table View
 
 struct TrackTableView: View {
-    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
     let filteredTracks: [Track]
     let audioPlayer: AudioPlayer
@@ -86,6 +86,6 @@ struct TrackTableView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(LibraryManager())
+        .environmentObject(LibraryService())
         .environmentObject(PreferencesService())
 }
