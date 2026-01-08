@@ -4,16 +4,18 @@ struct ArtistsView: View {
     var filteredArtists: [Artist]
     
     var body: some View {
-        VStack {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
-                ForEach(filteredArtists) { artist in
-                    ArtistGridItem(artist: artist) {
-                        //                        let allTracks = artist.albums.flatMap { $0.tracks }
-                        //                        audioPlayer.queueTracks(allTracks, startPlaying: true, behavior: preferences.playbackBehavior)
+        ScrollView {
+            VStack {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
+                    ForEach(filteredArtists) { artist in
+                        ArtistGridItem(artist: artist) {
+                            //                        let allTracks = artist.albums.flatMap { $0.tracks }
+                            //                        audioPlayer.queueTracks(allTracks, startPlaying: true, behavior: preferences.playbackBehavior)
+                        }
                     }
                 }
-            }
-        }.padding()
+            }.padding()
+        }
     }
 }
 

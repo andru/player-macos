@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PreferencesWindow: View {
-    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
     
     var body: some View {

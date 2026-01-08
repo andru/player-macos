@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
     @StateObject private var audioPlayer = AudioPlayer()
     @State private var selectedView: LibraryViewMode = .albums
@@ -27,8 +27,7 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 SidebarView(
                     selectedView: $selectedView,
-                    selectedCollection: $selectedCollection,
-                    library: library
+                    selectedCollection: $selectedCollection
                 )
                 
                 Divider()
@@ -43,7 +42,6 @@ struct ContentView: View {
                     )
                 } else {
                     LibraryView(
-                        library: library,
                         audioPlayer: audioPlayer,
                         selectedView: $selectedView,
                         selectedCollection: $selectedCollection,
@@ -58,8 +56,9 @@ struct ContentView: View {
                     QueueView(audioPlayer: audioPlayer)
                 }
             }
+            .frame(maxHeight: .infinity) // allow HStack to take remaining vertical space
         }
-        .frame(minWidth: 900, minHeight: 600)
+        .frame(minWidth: 900, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         // The LibraryLocationPicker component presents the alert and open panel when needed
         LibraryLocationPicker(library: library)
     }
@@ -67,6 +66,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(LibraryManager())
+        .environmentObject(LibraryService())
         .environmentObject(PreferencesService())
 }

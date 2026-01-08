@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct LibraryView: View {
-    @ObservedObject var library: LibraryManager
-    var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
+    var audioPlayer: AudioPlayer
     @Binding var selectedView: LibraryViewMode
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
@@ -30,7 +30,7 @@ struct LibraryView: View {
             Divider()
             
             // Content
-            ScrollView {
+            Group {
                 if selectedView == .albums || selectedCollection != nil {
                     AlbumsView(selectedAlbum: $selectedAlbum, filteredAlbums: filteredAlbums, audioPlayer: audioPlayer)
                 } else if selectedView == .artists {
@@ -39,7 +39,9 @@ struct LibraryView: View {
                     SongsView(filteredTracks: filteredTracks, audioPlayer: audioPlayer)
                 }
             }
+            .frame(maxHeight: .infinity)
         }
+        .frame(maxHeight: .infinity)
     
     }
     
@@ -49,7 +51,7 @@ struct LibraryView: View {
         }
         return selectedView.rawValue
     }
-    
+
     private var filteredTracks: [Track] {
         var tracks = library.tracks
         
@@ -68,7 +70,7 @@ struct LibraryView: View {
         return tracks
     }
     
-//    private var gridView: some 
+//    private var gridView: some
     
     
     private var filteredAlbums: [Album] {

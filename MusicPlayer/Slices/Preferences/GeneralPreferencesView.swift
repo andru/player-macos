@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct GeneralPreferencesView: View {
-    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var library: LibraryService
     @State private var showingLocationPicker = false
     
     var body: some View {

@@ -2,7 +2,7 @@ import Foundation
 
 /// Facade for database operations, providing a simple interface to the underlying repository
 /// This bridges the old @MainActor DatabaseManager API with the new async repository pattern
-class DatabaseManager {
+class DatabaseService {
     private let repository: GRDBRepository
     
     init() {

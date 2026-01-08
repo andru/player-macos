@@ -3,7 +3,7 @@ import SwiftUI
 struct TrackContextMenu: View {
     let track: Track
     let audioPlayer: AudioPlayer
-    let library: LibraryManager?
+    let library: LibraryService?
     
     var body: some View {
         Button("Play Now") {

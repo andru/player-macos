@@ -1,92 +1,91 @@
 import SwiftUI
 
+// MARK: - Track Table View
+
 struct TrackTableView: View {
-    @EnvironmentObject var library: LibraryManager
+    @EnvironmentObject var library: LibraryService
     @EnvironmentObject var preferences: PreferencesService
-    var filteredTracks: [Track]
+    let filteredTracks: [Track]
     let audioPlayer: AudioPlayer
+    @Binding var sortOrder: [KeyPathComparator<Track>]
+    
+    // State for selection
+    @State private var selection = Set<Track.ID>()
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("#")
-                    .frame(width: 40)
-                Text("Title")
+        Table(filteredTracks, selection: $selection, sortOrder: $sortOrder) {
+            // Track number column (non-sortable)
+//            TableColumn("#") { track in
+////                if let index = filteredTracks.firstIndex(where: { $0.id == track.id }) {
+////                    Text("\(index + 1)")
+////                        .foregroundColor(.secondary)
+////                        .frame(maxWidth: .infinity, alignment: .leading)
+////                }
+//                Text("\(track.trackNumber ?? "-")")
+//                    
+//            }
+//            .width(min: 40, ideal: 40, max: 60)
+//            
+            // Title column (sortable)
+            TableColumn("Title", value: \.title) { track in
+                Text(track.title)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Text("Artist")
-                    .frame(width: 200, alignment: .leading)
-                Text("Album")
-                    .frame(width: 200, alignment: .leading)
-                Text("Duration")
-                    .frame(width: 80, alignment: .trailing)
             }
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .width(min: 100)
             
-            Divider()
+            // Artist column (sortable)
+            TableColumn("Artist", value: \.artist) { track in
+                Text(track.artist)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .width(min: 100, ideal: 200)
             
-            // Rows
-            ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
-                
-                TrackTableRow(track: track, index: index + 1, action: {
-                    audioPlayer.queueTracks([track], startPlaying: true, behavior: preferences.playbackBehavior)
-                }, audioPlayer: audioPlayer, library: library)
-                
+            // Album column (sortable)
+            TableColumn("Album", value: \.album) { track in
+                Text(track.album)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .width(min: 100, ideal: 200)
+            
+            // Duration column (sortable)
+            TableColumn("Duration", value: \.duration) { track in
+                Text(track.formattedDuration)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .width(min: 60, ideal: 80, max: 100)
+        }
+        .frame(minHeight: 100, maxHeight: .infinity)
+        .layoutPriority(1)
+        .contextMenu(forSelectionType: Track.ID.self) { items in
+            // Context menu for selected items
+            if items.count == 1, let trackID = items.first,
+               let track = filteredTracks.first(where: { $0.id == trackID }) {
+                TrackContextMenu(track: track, audioPlayer: audioPlayer, library: library)
+            } else if items.count > 1 {
+                Button("Play Selected") {
+                    let selectedTracks = filteredTracks.filter { items.contains($0.id) }
+                    audioPlayer.queueTracks(selectedTracks, startPlaying: true, behavior: preferences.playbackBehavior)
+                }
+                Button("Add to Queue") {
+                    let selectedTracks = filteredTracks.filter { items.contains($0.id) }
+                    audioPlayer.addToQueueEnd(selectedTracks)
+                }
+            }
+        } primaryAction: { items in
+            // Double-click action (primaryAction is called on double-click)
+            let selectedTracks = filteredTracks.filter { items.contains($0.id) }
+            if !selectedTracks.isEmpty {
+                audioPlayer.queueTracks(selectedTracks, startPlaying: true, behavior: preferences.playbackBehavior)
             }
         }
     }
 }
 
-
-struct TrackTableRow: View {
-    let track: Track
-    let index: Int
-    let action: () -> Void
-    let audioPlayer: AudioPlayer?
-    let library: LibraryManager?
-    @State private var isHovered = false
-    
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Text("\(index)")
-                    .frame(width: 40)
-                    .foregroundColor(.secondary)
-                
-                Text(track.title)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Text(track.artist)
-                    .frame(width: 200, alignment: .leading)
-                    .foregroundColor(.secondary)
-                
-                Text(track.album)
-                    .frame(width: 200, alignment: .leading)
-                    .foregroundColor(.secondary)
-                
-                Text(track.formattedDuration)
-                    .frame(width: 80, alignment: .trailing)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(isHovered ? Color.accentColor.opacity(0.1) : Color.clear)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            if let audioPlayer = audioPlayer {
-                TrackContextMenu(track: track, audioPlayer: audioPlayer, library: library)
-            }
-        }
-        .onHover { hovering in
-            isHovered = hovering
-        }
-        
-        Divider()
-    }
+#Preview {
+    ContentView()
+        .environmentObject(LibraryService())
+        .environmentObject(PreferencesService())
 }
