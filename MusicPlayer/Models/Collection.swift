@@ -5,9 +5,9 @@ import Foundation
 struct Collection: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
-    var trackIDs: [UUID]
+    var trackIDs: [Int64]
 
-    init(id: UUID = UUID(), name: String, trackIDs: [UUID] = []) {
+    init(id: UUID = UUID(), name: String, trackIDs: [Int64] = []) {
         self.id = id
         self.name = name
         self.trackIDs = trackIDs
