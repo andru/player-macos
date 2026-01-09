@@ -56,7 +56,7 @@ class DatabaseService {
         try await repository.loadArtist(id: id, includeAlbums: includeAlbums)
     }
     
-    // MARK: - Album Methods
+    // MARK: - Album Methods (UI compatibility layer)
     
     func loadAlbums() async throws -> [Album] {
         try await repository.loadAlbums()
@@ -70,32 +70,62 @@ class DatabaseService {
         try await repository.loadAlbum(id: id, includeReleases: includeReleases)
     }
     
+    // MARK: - Release Group Methods
+    
+    func loadReleaseGroups() async throws -> [ReleaseGroup] {
+        try await repository.loadReleaseGroups()
+    }
+    
+    func loadReleaseGroups(forArtistId artistId: Int64) async throws -> [ReleaseGroup] {
+        try await repository.loadReleaseGroups(forArtistId: artistId)
+    }
+    
+    func loadReleaseGroup(id: Int64, includeReleases: Bool = false) async throws -> ReleaseGroup? {
+        try await repository.loadReleaseGroup(id: id, includeReleases: includeReleases)
+    }
+    
     // MARK: - Release Methods
     
     func loadReleases() async throws -> [Release] {
         try await repository.loadReleases()
     }
     
-    func loadReleases(forAlbumId albumId: Int64) async throws -> [Release] {
-        try await repository.loadReleases(forAlbumId: albumId)
+    func loadReleases(forReleaseGroupId releaseGroupId: Int64) async throws -> [Release] {
+        try await repository.loadReleases(forReleaseGroupId: releaseGroupId)
     }
     
-    func loadRelease(id: Int64, includeTracks: Bool = false) async throws -> Release? {
-        try await repository.loadRelease(id: id, includeTracks: includeTracks)
+    func loadRelease(id: Int64, includeMedia: Bool = false) async throws -> Release? {
+        try await repository.loadRelease(id: id, includeMedia: includeMedia)
     }
     
-    func getDefaultRelease(forAlbumId albumId: Int64) async throws -> Release? {
-        try await repository.getDefaultRelease(forAlbumId: albumId)
+    func getDefaultRelease(forReleaseGroupId releaseGroupId: Int64) async throws -> Release? {
+        try await repository.getDefaultRelease(forReleaseGroupId: releaseGroupId)
+    }
+    
+    // MARK: - Medium Methods
+    
+    func loadMedia(forReleaseId releaseId: Int64) async throws -> [Medium] {
+        try await repository.loadMedia(forReleaseId: releaseId)
     }
     
     // MARK: - Track Methods
     
-    func loadTracks(forReleaseId releaseId: Int64, orderByDiscAndTrackNumber: Bool = true) async throws -> [Track] {
-        try await repository.loadTracks(forReleaseId: releaseId, orderByDiscAndTrackNumber: orderByDiscAndTrackNumber)
+    func loadTracks(forMediumId mediumId: Int64) async throws -> [Track] {
+        try await repository.loadTracks(forMediumId: mediumId)
     }
     
-    func loadTrack(id: Int64, includeDigitalFiles: Bool = false) async throws -> Track? {
-        try await repository.loadTrack(id: id, includeDigitalFiles: includeDigitalFiles)
+    func loadTrack(id: Int64) async throws -> Track? {
+        try await repository.loadTrack(id: id)
+    }
+    
+    // MARK: - Recording Methods
+    
+    func loadRecordings() async throws -> [Recording] {
+        try await repository.loadRecordings()
+    }
+    
+    func loadRecording(id: Int64) async throws -> Recording? {
+        try await repository.loadRecording(id: id)
     }
     
     // MARK: - Digital File Methods
@@ -104,31 +134,25 @@ class DatabaseService {
         try await repository.loadDigitalFiles()
     }
     
-    func loadDigitalFiles(forTrackId trackId: Int64) async throws -> [DigitalFile] {
-        try await repository.loadDigitalFiles(forTrackId: trackId)
-    }
-    
-    func loadTracksWithoutDigitalFiles() async throws -> [Track] {
-        try await repository.loadTracksWithoutDigitalFiles()
-    }
-    
-    func loadTracksWithDigitalFiles() async throws -> [Track] {
-        try await repository.loadTracksWithDigitalFiles()
+    func loadDigitalFiles(forRecordingId recordingId: Int64) async throws -> [DigitalFile] {
+        try await repository.loadDigitalFiles(forRecordingId: recordingId)
     }
     
     // MARK: - Import Methods
     
-    func importAudioFile(url: URL) async throws -> Track {
-        guard let importService = importService else {
-            throw DatabaseError.notOpen
-        }
-        return try await importService.importAudioFile(url: url)
-    }
-    
+    /// Import audio files using the MusicBrainz-aligned import service
     func importAudioFiles(urls: [URL]) async throws -> [Track] {
         guard let importService = importService else {
-            throw DatabaseError.notOpen
+            throw NSError(domain: "DatabaseService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Database not open"])
         }
         return try await importService.importAudioFiles(urls: urls)
+    }
+    
+    /// Import a single audio file
+    func importAudioFile(url: URL) async throws -> Track {
+        guard let importService = importService else {
+            throw NSError(domain: "DatabaseService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Database not open"])
+        }
+        return try await importService.importAudioFile(url: url)
     }
 }
