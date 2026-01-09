@@ -1,11 +1,11 @@
 import SwiftUI
 
 struct TrackContextMenu: View {
+    @EnvironmentObject var container: AppContainer
     let track: Track
-    let audioPlayer: AudioPlayer
-    let library: LibraryService?
     
     var body: some View {
+        let audioPlayer = container.library.audioPlayer
         Button("Play Now") {
             audioPlayer.playNow(track)
         }
@@ -21,7 +21,7 @@ struct TrackContextMenu: View {
         Divider()
         
         Button("Favourite") {
-            library?.toggleFavorite(track: track)
+//            library?.toggleFavorite(track: track)
         }
         
         Button("Add to Collection") {
@@ -37,15 +37,15 @@ struct TrackContextMenu: View {
         Divider()
         
         Button("Remove from Library") {
-            library?.removeFromLibrary(track: track)
+//            library?.removeFromLibrary(track: track)
         }
         
         Button("Refresh from Source") {
-            library?.refreshFromSource(track: track)
+//            library?.refreshFromSource(track: track)
         }
         
         Button("Edit Info") {
-            library?.editInfo(track: track)
+//            library?.editInfo(track: track)
         }
     }
 }

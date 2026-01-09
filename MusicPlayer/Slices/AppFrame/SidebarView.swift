@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @EnvironmentObject var library: LibraryService
+    @EnvironmentObject var library: AppLibraryService
     @Binding var selectedView: LibraryViewMode
+    @Binding var selectedAlbum: Album?
     @Binding var selectedCollection: Collection?
-
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -25,6 +25,7 @@ struct SidebarView: View {
                     ) {
                         selectedView = view
                         selectedCollection = nil
+                        selectedAlbum = nil
                     }
                 }
             }

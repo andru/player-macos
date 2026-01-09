@@ -1,47 +1,79 @@
 import SwiftUI
 
 struct LibraryView: View {
-    @EnvironmentObject var library: LibraryService
+    @EnvironmentObject var container: AppContainer
     @EnvironmentObject var preferences: PreferencesService
-    var audioPlayer: AudioPlayer
+    
+    @StateObject private var vm: LibraryRootViewModel
+    
     @Binding var selectedView: LibraryViewMode
     @Binding var selectedCollection: Collection?
     @Binding var searchText: String
     @Binding var selectedAlbum: Album?
     @State private var displayMode: DisplayMode = .grid
-    
+
     // Make `body` available for the deployment target (macOS 13+). If any
     // APIs used inside require macOS 14+, guard with `if #available` there.
     var body: some View {
-        VStack(spacing: 0) {
-            // Toolbar
-            HStack {
-                // Import button
-                Button(action: { Task { await importMusicDirectory() } }) {
+    
+            switch container.state {
+                
+            case .idle:
+                //                OpenLibraryView(
+                //                    onOpen: {
+                //                        Task {
+                //                            await container.openLibrary()
+                //                        }
+                //                    }
+                //                )
+                ProgressView("Loading…")
+            case .opening:
+                ProgressView("Opening library…")
+                
+            case .ready(let deps):
+
+                VStack(spacing: 0) {
+                    // Toolbar
                     HStack {
-                        Image(systemName: "plus")
-                        Text("Import")
+                        // Import button
+                        Button(action: { Task { await importMusicDirectory() } }) {
+                            HStack {
+                                Image(systemName: "plus")
+                                Text("Import")
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
+                    .padding()
+                    
+                    Divider()
+                    
+                    // Content
+                    HStack {
+                        if selectedView == .albums || selectedCollection != nil {
+                            AlbumsView(selectedAlbum: $selectedAlbum)
+                        } else if selectedView == .artists {
+                            ArtistsView()
+                        } else {
+                            SongsView(audioPlayer: container.library.audioPlayer)
+                        }
+                    }
+                    .frame(maxHeight: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .frame(maxHeight: .infinity)
+                
+            case .error(let error):
+                LibraryErrorView(
+                    error: error
+//                    , onRetry: {
+//                        Task {
+//                            await container.openLibrary()
+//                        }
+//                    }
+                )
             }
-            .padding()
-            
-            Divider()
-            
-            // Content
-            Group {
-                if selectedView == .albums || selectedCollection != nil {
-                    AlbumsView(selectedAlbum: $selectedAlbum, filteredAlbums: filteredAlbums, audioPlayer: audioPlayer)
-                } else if selectedView == .artists {
-                    ArtistsView(filteredArtists: filteredArtists)
-                } else {
-                    SongsView(filteredTracks: filteredTracks, audioPlayer: audioPlayer)
-                }
-            }
-            .frame(maxHeight: .infinity)
-        }
-        .frame(maxHeight: .infinity)
+        
+
     
     }
     
@@ -51,7 +83,7 @@ struct LibraryView: View {
         }
         return selectedView.rawValue
     }
-
+/*
     private var filteredTracks: [Track] {
         var tracks = library.tracks
         
@@ -97,7 +129,7 @@ struct LibraryView: View {
         
         return artists
     }
-    
+    */
     
     private func importMusicFiles() async {
         let panel = NSOpenPanel()

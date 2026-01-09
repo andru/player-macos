@@ -1,7 +1,12 @@
 import SwiftUI
 
 struct QueueView: View {
-    @ObservedObject var audioPlayer: AudioPlayer
+    @EnvironmentObject var container: AppContainer
+    var audioPlayer: AudioPlayerService
+    
+    init () {
+        audioPlayer = container.player.audioPlayer
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -60,8 +65,8 @@ struct QueueView: View {
                                 }
                                 .onDrop(of: [.text], delegate: QueueDropDelegate(
                                     item: index,
-                                    items: $audioPlayer.queue,
-                                    currentIndex: $audioPlayer.currentQueueIndex,
+                                    items: audioPlayer.queue,
+                                    currentIndex: audioPlayer.currentQueueIndex,
                                     audioPlayer: audioPlayer
                                 ))
                             }
@@ -169,7 +174,7 @@ struct QueueDropDelegate: DropDelegate {
     let item: Int
     @Binding var items: [QueueItem]
     @Binding var currentIndex: Int
-    let audioPlayer: AudioPlayer
+    let audioPlayer: AudioPlayerService
     
     func performDrop(info: DropInfo) -> Bool {
         // Return success only if we have valid item providers

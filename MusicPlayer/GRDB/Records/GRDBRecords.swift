@@ -524,3 +524,34 @@ struct RecordingDigitalFileRecord: Codable, FetchableRecord, PersistableRecord {
         static let digitalFileId = Column(CodingKeys.digitalFileId)
     }
 }
+
+
+// MARK: - GRDB Record for Collection
+
+struct CollectionRecord: Codable, FetchableRecord, PersistableRecord {
+    var id: String
+    var name: String
+    
+    static let databaseTableName = "collections"
+    
+    init(from collection: Collection) {
+        self.id = collection.id.uuidString
+        self.name = collection.name
+    }
+}
+
+// MARK: - GRDB Record for Collection-Track Association
+
+struct CollectionTrackRecord: Codable, FetchableRecord, PersistableRecord {
+    var collectionId: String
+    var trackId: String
+    var position: Int
+    
+    static let databaseTableName = "collection_tracks"
+    
+    enum Columns {
+        static let collectionId = Column(CodingKeys.collectionId)
+        static let trackId = Column(CodingKeys.trackId)
+        static let position = Column(CodingKeys.position)
+    }
+}

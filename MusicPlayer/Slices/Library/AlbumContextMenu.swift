@@ -1,31 +1,32 @@
 import SwiftUI
 
 struct AlbumContextMenu: View {
+    @EnvironmentObject var container: AppContainer
     let album: Album
-    let audioPlayer: AudioPlayer
-    let library: LibraryService?
     
-    private var allTracks: [Track] {
-        album.releases.flatMap { $0.tracks }
-    }
+//    private var allTracks: [Track] {
+//        album.releases.flatMap { $0.tracks }
+//    }
     
     var body: some View {
         Button("Play Now") {
-            audioPlayer.queueTracks(allTracks, startPlaying: true)
+//            audioPlayer.queueTracks(allTracks, startPlaying: true)
         }
         
         Button("Next in Queue") {
-            audioPlayer.addToQueueNext(allTracks)
+//            audioPlayer.addToQueueNext(allTracks)
         }
         
         Button("End of Queue") {
-            audioPlayer.addToQueueEnd(allTracks)
+//            audioPlayer.addToQueueEnd(allTracks)
         }
         
         Divider()
         
         Button("Favourite") {
-            allTracks.forEach { library?.toggleFavorite(track: $0) }
+//            allTracks.forEach {
+                //                library?.toggleFavorite(track: $0)
+//            }
         }
         
         Button("Add to Collection") {
@@ -41,18 +42,22 @@ struct AlbumContextMenu: View {
         Divider()
         
         Button("Remove from Library") {
-            allTracks.forEach { library?.removeFromLibrary(track: $0) }
+//            allTracks.forEach {
+//                library?.removeFromLibrary(track: $0)
+//            }
         }
         
         Button("Refresh from Source") {
-            allTracks.forEach { library?.refreshFromSource(track: $0) }
+//            allTracks.forEach {
+//                library?.refreshFromSource(track: $0)
+//            }
         }
         
         Button("Edit Info") {
             // Edit first track or album info
-            if let firstTrack = allTracks.first {
-                library?.editInfo(track: firstTrack)
-            }
+//            if let firstTrack = allTracks.first {
+//                library?.editInfo(track: firstTrack)
+//            }
         }
     }
 }

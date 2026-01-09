@@ -1,8 +1,8 @@
 import GRDB
 
 extension DatabaseMigrator {
-    mutating func registerV2PhysicalMedia() {
-        registerMigration("v2_physical_media") { db in
+    mutating func registerV1() {
+        registerMigration("v1") { db in
             // Create Artists table
             try db.create(table: "artists") { t in
                 t.autoIncrementedPrimaryKey("id")

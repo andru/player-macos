@@ -2,13 +2,13 @@ import SwiftUI
 
 @main
 struct MusicPlayerApp: App {
-    @StateObject private var library = LibraryService()
+    @StateObject private var container = try! AppContainer()
     @StateObject private var preferences = PreferencesService()
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(library)
+            RootView()
+                .environmentObject(container)
                 .environmentObject(preferences)
         }
         .windowStyle(.hiddenTitleBar)
@@ -18,8 +18,9 @@ struct MusicPlayerApp: App {
         
         Settings {
             PreferencesWindow()
-                .environmentObject(library)
+                .environmentObject(container)
                 .environmentObject(preferences)
         }
     }
+
 }

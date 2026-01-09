@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct AlbumDetailView: View {
+    @EnvironmentObject var container: AppContainer
     let album: Album
-    var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
     let onBack: () -> Void
     
     @State private var selectedTrackIDs: Set<Int64> = []
@@ -39,6 +39,7 @@ struct AlbumDetailView: View {
     }
     
     var body: some View {
+        let audioPlayer = container.audioPlayer
         VStack(spacing: 0) {
             // Top section with album info
             HStack(alignment: .top, spacing: 24) {

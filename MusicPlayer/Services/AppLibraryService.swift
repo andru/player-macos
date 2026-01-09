@@ -2,16 +2,12 @@ import Foundation
 @preconcurrency import AVFoundation
 
 @MainActor
-class LibraryService: ObservableObject, LibraryServiceProtocol {
-    // Persistent library state - now loaded from database
-    @Published var tracks: [Track] = []
-    @Published var collections: [Collection] = []
-    @Published var albums: [Album] = []
-    @Published var artists: [Artist] = []
+final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
 
     // UI / setup state
     @Published var needsLibraryLocationSetup = false
     @Published var libraryURL: URL? = nil
+    @Published var libraryDbURL: URL? = nil
 
     // Internal
     private let bookmarkKey = "MusicPlayerLibraryBookmark"
@@ -19,7 +15,6 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
     private var isSecurityScoped = false
     private var securityScopedURL: URL? = nil
     private var accessedDirectories: [URL] = []
-    private let databaseManager = DatabaseService()
     
     // Task management for proper lifecycle
     private var initializationTask: Task<Void, Never>?
@@ -28,7 +23,7 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
     private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
 
     // MARK: - Init
-    init() {
+    func ensureAccess() async throws -> URL {
         // Restore directory bookmarks for previously imported directories
         restoreDirectoryBookmarks()
         
@@ -64,75 +59,14 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
                 self.needsLibraryLocationSetup = true
             }
         }
-    }
-
-
-    // MARK: - Public API
-    func addTrack(_ track: Track) {
-        tracks.append(track)
-        // Reload albums and artists to reflect the change
-        Task {
-            await loadLibraryData()
-        }
-    }
-
-    func removeTrack(_ track: Track) {
-        tracks.removeAll { $0.id == track.id }
-        // Reload albums and artists to reflect the change
-        Task {
-            await loadLibraryData()
-        }
-    }
-
-    func addCollection(_ collection: Collection) {
-        collections.append(collection)
-        saveLibrary()
-    }
-
-    func removeCollection(_ collection: Collection) {
-        collections.removeAll { $0.id == collection.id }
-        saveLibrary()
-    }
-    
-    // MARK: - Context Menu Actions
-    
-    func toggleFavorite(track: Track) {
-        // TODO: Implement favorite tracking
-        print("Toggle favorite for track: \(track.title)")
-    }
-    
-    func addTracksToCollection(tracks: [Track], collection: Collection) {
-        // Add track IDs to collection if not already present
-        guard let index = collections.firstIndex(where: { $0.id == collection.id }) else { return }
-        var updatedCollection = collections[index]
-        for track in tracks {
-            if !updatedCollection.trackIDs.contains(track.id) {
-                updatedCollection.trackIDs.append(track.id)
-            }
-        }
-        collections[index] = updatedCollection
-        saveLibrary()
-    }
-    
-    func removeFromLibrary(track: Track) {
-        removeTrack(track)
-    }
-    
-    func refreshFromSource(track: Track) {
-        // TODO: Implement metadata refresh from file
-        print("Refresh metadata for track: \(track.title)")
-    }
-    
-    func editInfo(track: Track) {
-        // TODO: Implement edit info dialog
-        print("Edit info for track: \(track.title)")
+        
+        return libraryURL!
     }
 
     /// Called by UI when user selects a folder to host the library.
     func setLibraryLocation(url: URL) {
         // User's selected folder -> create/ensure MusicPlayer.library inside it
         let libraryBundleURL = url.appendingPathComponent("MusicPlayer.library", isDirectory: true)
-
         // Stop previous access if any
         stopAccessingSecurityScopedURLIfNeeded()
 
@@ -196,7 +130,7 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
             securityScopedURL = bundleURL
         }
         self.libraryURL = bundleURL
-        try await loadLibrary()
+        self.libraryDbURL = bundleURL.appendingPathComponent("Contents/Resources/library.db")
     }
 
     private func stopAccessingSecurityScopedURLIfNeeded() {
@@ -206,97 +140,7 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
             securityScopedURL = nil
         }
     }
-
-    private func loadLibrary() async throws {
-        guard let bundleURL = libraryURL else { return }
-        
-        // Try to open/initialize the database
-        try await databaseManager.openDatabase(at: bundleURL)
-        
-        // Load all data from the database
-        await loadLibraryData()
-    }
     
-    private func loadLibraryData() async {
-        do {
-            // Load all entities from the database
-            let loadedTracks = try await databaseManager.loadTracks()
-            let loadedCollections = try await databaseManager.loadCollections()
-            let loadedArtists = try await databaseManager.loadArtists()
-            let loadedAlbums = try await databaseManager.loadAlbums()
-            
-            // Load releases for each album
-            var albumsWithReleases: [Album] = []
-            for var album in loadedAlbums {
-                let releases = try await databaseManager.loadReleases(forAlbumId: album.id)
-                
-                // Load tracks for each release
-                var releasesWithTracks: [Release] = []
-                for var release in releases {
-                    let tracks = try await databaseManager.loadTracks(forReleaseId: release.id, orderByDiscAndTrackNumber: true)
-                    
-                    // Load digital files for each track
-                    var tracksWithFiles: [Track] = []
-                    for var track in tracks {
-                        let digitalFiles = try await databaseManager.loadDigitalFiles(forTrackId: track.id)
-                        track.digitalFiles = digitalFiles
-                        tracksWithFiles.append(track)
-                    }
-                    
-                    release.tracks = tracksWithFiles
-                    releasesWithTracks.append(release)
-                }
-                
-                album.releases = releasesWithTracks
-                albumsWithReleases.append(album)
-            }
-            
-            // Update artists with their albums
-            var artistsWithAlbums: [Artist] = []
-            for var artist in loadedArtists {
-                let artistAlbums = albumsWithReleases.filter { $0.artistId == artist.id }
-                artist.albums = artistAlbums
-                artistsWithAlbums.append(artist)
-            }
-            
-            // Flatten all tracks from all releases
-            let allTracks = albumsWithReleases.flatMap { album in
-                album.releases.flatMap { $0.tracks }
-            }
-            
-            // Update published properties
-            self.tracks = allTracks
-            self.collections = loadedCollections
-            self.albums = albumsWithReleases
-            self.artists = artistsWithAlbums
-        } catch {
-            print("LibraryManager: error loading from database: \(error)")
-        }
-    }
-
-    // Task management for saves
-    private var saveTask: Task<Void, Never>?
-    
-    func saveLibrary() {
-        guard libraryURL != nil else { return }
-        
-        // Cancel any pending save
-        saveTask?.cancel()
-        
-        // Capture current state
-        let tracksToSave = tracks
-        let collectionsToSave = collections
-        
-        saveTask = Task { @MainActor in
-            do {
-                try await databaseManager.saveTracks(tracksToSave)
-                try await databaseManager.saveCollections(collectionsToSave)
-            } catch {
-                print("LibraryManager: failed to save library: \(error)")
-            }
-        }
-    }
-
     // MARK: - Bookmarks
     private func persistBookmark(for url: URL) {
         do {
@@ -369,6 +213,7 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
         accessedDirectories.removeAll()
     }
 
+    /*
     // MARK: - Track creation and metadata helpers
     func importFiles(urls: [URL]) async {
         for url in urls {
@@ -439,13 +284,13 @@ class LibraryService: ObservableObject, LibraryServiceProtocol {
         }
         
         return musicFiles
-    }
+    }*/
     
     // MARK: - Cleanup
     deinit {
         // Cancel any pending tasks
         initializationTask?.cancel()
-        saveTask?.cancel()
+    
 //        CoPilot - stop adding these to deinit
 //        stopAccessingSecurityScopedURLIfNeeded()
 //        stopAccessingDirectories()

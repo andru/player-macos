@@ -1,7 +1,5 @@
 import Foundation
 
-// MARK: - Core Domain Model (iOS/macOS portable)
-
 /// A Recording as sequenced on a Medium
 struct Track: Identifiable, Hashable {
     let id: Int64

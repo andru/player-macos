@@ -1,20 +1,12 @@
 import SwiftUI
 
 struct AlbumsView: View {
-    @EnvironmentObject var library: LibraryService
+    @EnvironmentObject var container: AppContainer
     @EnvironmentObject var preferences: PreferencesService
     @Binding var selectedAlbum: Album?
-    var filteredAlbums: [Album]
-    let audioPlayer: AudioPlayer
-    @State private var displayMode: DisplayMode = .grid
-    @StateObject private var viewModel = SongsViewModel()
     
-    private var sortedTracks: [Track] {
-        let allTracks = filteredAlbums.flatMap { album in
-            album.releases.flatMap { $0.tracks }
-        }
-        return viewModel.sortedTracks(from: allTracks)
-    }
+    @State private var displayMode: DisplayMode = .grid
+    @StateObject private var vm = AlbumsViewModel()
     
     var body: some View {
         VStack(spacing: 0) {
@@ -46,29 +38,33 @@ struct AlbumsView: View {
                 .cornerRadius(6)
             }
             
-            if displayMode == .grid {
+//            if displayMode == .grid {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
                         
-                        ForEach(filteredAlbums) { album in
+                        ForEach(vm.albumRows) { album in
                             
                             AlbumGridItem(album: album, action: {
-                                selectedAlbum = album
+                                selectedAlbum = await vm.fetchAlbumDetails(albumID: album.id)
                                 //                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
-                            }, audioPlayer: audioPlayer, library: library)
+                            }, audioPlayer: container.library.audioPlayer)
                             
                         }
                         
                     }
                     .padding()
                 }
-            } else {
-                TrackTableView(
-                    filteredTracks: sortedTracks,
-                    audioPlayer: audioPlayer,
-                    sortOrder: $viewModel.sortOrder
-                )
-            }
+//            } else {
+//                TrackTableView(
+//                    filteredTracks: sortedTracks,
+//                    audioPlayer: audioPlayer,
+//                    sortOrder: $vm.sortOrder
+//                )
+//            }
+        }.task {
+            // Runs when the view appears; guard to ensure one-time configure
+            vm.configureIfNeeded(deps: container.library)
+            await vm.loadInitialIfNeeded()
         }.onAppear {
             loadViewMode()
         }
@@ -76,7 +72,6 @@ struct AlbumsView: View {
 //            loadViewMode()
 //        }
     }
-    
     
     private func loadViewMode() {
         let defaultMode: DisplayMode = .grid
@@ -101,7 +96,6 @@ struct AlbumGridItem: View {
     let album: Album
     let action: () -> Void
     let audioPlayer: AudioPlayer?
-    let library: LibraryService?
     
     private var trackCount: Int {
         album.releases.reduce(0) { $0 + $1.tracks.count }
@@ -132,7 +126,7 @@ struct AlbumGridItem: View {
             .buttonStyle(.plain)
             .contextMenu {
                 if let audioPlayer = audioPlayer {
-                    AlbumContextMenu(album: album, audioPlayer: audioPlayer, library: library)
+                    AlbumContextMenu(album: album, audioPlayer: audioPlayer)
                 }
             }
             

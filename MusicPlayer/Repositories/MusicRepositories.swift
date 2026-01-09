@@ -6,7 +6,7 @@ protocol ArtistRepository {
     func loadArtists() async throws -> [Artist]
     
     /// Load a specific artist by ID with optional relationships
-    func loadArtist(id: Int64, includeAlbums: Bool) async throws -> Artist?
+    func loadArtist(id: Int64) async throws -> Artist?
     
     /// Save or update an artist
     func saveArtist(_ artist: Artist) async throws -> Artist
@@ -84,7 +84,7 @@ protocol ReleaseGroupRepository {
     func loadReleaseGroups(forArtistId artistId: Int64) async throws -> [ReleaseGroup]
     
     /// Load a specific release group by ID
-    func loadReleaseGroup(id: Int64, includeReleases: Bool) async throws -> ReleaseGroup?
+    func loadReleaseGroup(id: Int64) async throws -> ReleaseGroup?
     
     /// Save or update a release group
     func saveReleaseGroup(_ releaseGroup: ReleaseGroup) async throws -> ReleaseGroup
@@ -105,7 +105,7 @@ protocol AlbumRepository {
     func loadAlbums(forArtistId artistId: Int64) async throws -> [Album]
     
     /// Load a specific album by ID
-    func loadAlbum(id: Int64, includeReleases: Bool) async throws -> Album?
+    func loadAlbum(id: Int64) async throws -> Album?
 }
 
 /// Protocol defining release persistence operations
@@ -117,7 +117,7 @@ protocol ReleaseRepository {
     func loadReleases(forReleaseGroupId releaseGroupId: Int64) async throws -> [Release]
     
     /// Load a specific release by ID
-    func loadRelease(id: Int64, includeMedia: Bool) async throws -> Release?
+    func loadRelease(id: Int64) async throws -> Release?
     
     /// Save or update a release
     func saveRelease(_ release: Release) async throws -> Release

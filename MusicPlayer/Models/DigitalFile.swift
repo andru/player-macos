@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Core Domain Model (iOS/macOS portable)
 
 /// Local-only entity representing a file on disk
-struct DigitalFile: Identifiable, Codable, Hashable {
+struct DigitalFile: Identifiable, Hashable {
     let id: Int64
     var fileURL: URL
     var bookmarkData: Data?
