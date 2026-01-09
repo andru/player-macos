@@ -4,7 +4,19 @@ import GRDB
 // MARK: - GRDB Database Manager
 
 /// GRDB-based implementation of all music library repositories
-class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, AlbumRepository, ReleaseRepository, DigitalFileRepository {
+class GRDBRepository: 
+    ArtistRepository,
+    WorkRepository,
+    RecordingRepository,
+    LabelRepository,
+    ReleaseGroupRepository,
+    AlbumRepository,
+    ReleaseRepository,
+    MediumRepository,
+    TrackRepository,
+    DigitalFileRepository,
+    CollectionRepository
+{
     private var dbQueue: DatabaseQueue?
     private let dbFileName = "library.db"
     
@@ -23,9 +35,6 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
             self.dbQueue = dbQueue
             
             // Run migrations
-            try await dbQueue.write { db in
-                
-            }
             try DatabaseMigrations.makeMigrator().migrate(dbQueue)
         } catch {
             throw DatabaseError.openFailed(message: error.localizedDescription)
@@ -62,11 +71,6 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
                 return nil
             }
             
-            if includeAlbums {
-                let albums = try loadAlbums(forArtistId: id, withDb: db)
-                return record.toArtist(albums: albums)
-            }
-            
             return record.toArtist()
         }
     }
@@ -77,9 +81,9 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            let record = ArtistRecord(from: artist)
+            var record = ArtistRecord(from: artist)
             try record.save(db)
-            return record.toArtist(albums: artist.albums)
+            return record.toArtist()
         }
     }
     
@@ -114,134 +118,397 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         return try await saveArtist(newArtist)
     }
     
-    // MARK: - AlbumRepository
+    // MARK: - WorkRepository
     
-    func loadAlbums() async throws -> [Album] {
+    func loadWorks() async throws -> [Work] {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
-            let records = try AlbumRecord
+            let records = try WorkRecord
                 .order(Column("title"))
                 .fetchAll(db)
-            return records.map { $0.toAlbum() }
+            return records.map { $0.toWork() }
         }
     }
     
-    func loadAlbums(forArtistId artistId: Int64) async throws -> [Album] {
+    func loadWork(id: Int64) async throws -> Work? {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
-            let records = try AlbumRecord
-                .filter(Column("artistId") == artistId)
-                .order(Column("title"))
-                .fetchAll(db)
-            return records.map { $0.toAlbum() }
-        }
-    }
-    
-    // for using inside an already running queue
-    func loadAlbums(forArtistId artistId: Int64, withDb: Database) throws -> [Album] {
-        let records = try AlbumRecord
-            .filter(Column("artistId") == artistId)
-            .order(Column("title"))
-            .fetchAll(withDb)
-        return records.map { $0.toAlbum() }
-    }
-    
-    func loadAlbum(id: Int64, includeReleases: Bool) async throws -> Album? {
-        guard let dbQueue = dbQueue else {
-            throw DatabaseError.notOpen
-        }
-        
-        return try await dbQueue.read { db in
-            guard let record = try AlbumRecord.fetchOne(db, key: id) else {
+            guard let record = try WorkRecord.fetchOne(db, key: id) else {
                 return nil
             }
-            
-            if includeReleases {
-                let releases = try loadReleases(forAlbumId: id, withDb: db)
-                return record.toAlbum(releases: releases)
-            }
-            
-            return record.toAlbum()
+            return record.toWork()
         }
     }
     
-    func saveAlbum(_ album: Album) async throws -> Album {
+    func saveWork(_ work: Work) async throws -> Work {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.write { db in
-            let record = AlbumRecord(from: album)
+            var record = WorkRecord(from: work)
             try record.save(db)
-            return record.toAlbum(releases: album.releases, artist: album.artist)
+            return record.toWork()
         }
     }
     
-    func findAlbum(artistId: Int64, title: String) async throws -> Album? {
+    func findWork(title: String, primaryArtistId: Int64) async throws -> Work? {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
-            if let record = try AlbumRecord
-                .filter(Column("artistId") == artistId && Column("title") == title)
-                .fetchOne(db) {
-                return record.toAlbum()
+            // Find work by title with artist link
+            let sql = """
+                SELECT w.* FROM works w
+                INNER JOIN work_artist wa ON wa.workId = w.id
+                WHERE w.title = ? AND wa.artistId = ?
+                LIMIT 1
+            """
+            if let record = try WorkRecord.fetchOne(db, sql: sql, arguments: [title, primaryArtistId]) {
+                return record.toWork()
             }
             return nil
         }
     }
     
-    func upsertAlbum(artistId: Int64, title: String, artistName: String, albumArtistName: String?, composerName: String?, isCompilation: Bool) async throws -> Album {
-        if let existing = try await findAlbum(artistId: artistId, title: title) {
-            // Update fields if they've changed
-            var updated = existing
-            var needsUpdate = false
-            
-            if updated.artistName != artistName {
-                updated.artistName = artistName
-                needsUpdate = true
-            }
-            
-            if updated.albumArtistName != albumArtistName {
-                updated.albumArtistName = albumArtistName
-                needsUpdate = true
-            }
-            if updated.composerName != composerName {
-                updated.composerName = composerName
-                needsUpdate = true
-            }
-            if updated.isCompilation != isCompilation {
-                updated.isCompilation = isCompilation
-                needsUpdate = true
-            }
-            
-            if needsUpdate {
-                updated.updatedAt = Date()
-                return try await saveAlbum(updated)
-            }
-            
+    func upsertWork(title: String, artistIds: [Int64]) async throws -> Work {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        // Try to find existing work
+        if let primaryArtistId = artistIds.first,
+           let existing = try await findWork(title: title, primaryArtistId: primaryArtistId) {
             return existing
         }
         
-        let newAlbum = Album(
+        // Create new work
+        return try await dbQueue.write { db in
+            var workRecord = WorkRecord(id: nil, title: title)
+            try workRecord.save(db)
+            
+            let workId = workRecord.id!
+            
+            // Link artists
+            for artistId in artistIds {
+                try db.execute(
+                    sql: "INSERT INTO work_artist (workId, artistId) VALUES (?, ?)",
+                    arguments: [workId, artistId]
+                )
+            }
+            
+            return workRecord.toWork()
+        }
+    }
+    
+    // MARK: - RecordingRepository
+    
+    func loadRecordings() async throws -> [Recording] {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            let records = try RecordingRecord
+                .order(Column("title"))
+                .fetchAll(db)
+            return records.map { $0.toRecording() }
+        }
+    }
+    
+    func loadRecording(id: Int64) async throws -> Recording? {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            guard let record = try RecordingRecord.fetchOne(db, key: id) else {
+                return nil
+            }
+            return record.toRecording()
+        }
+    }
+    
+    func saveRecording(_ recording: Recording) async throws -> Recording {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.write { db in
+            var record = RecordingRecord(from: recording)
+            try record.save(db)
+            return record.toRecording()
+        }
+    }
+    
+    func findRecording(title: String, duration: TimeInterval?) async throws -> Recording? {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            var query = RecordingRecord.filter(Column("title") == title)
+            
+            if let duration = duration {
+                // Match within 1 second tolerance
+                query = query.filter(
+                    Column("duration") >= (duration - 1.0) &&
+                    Column("duration") <= (duration + 1.0)
+                )
+            }
+            
+            if let record = try query.fetchOne(db) {
+                return record.toRecording()
+            }
+            return nil
+        }
+    }
+    
+    func upsertRecording(title: String, duration: TimeInterval?, workIds: [Int64], artistIds: [Int64]) async throws -> Recording {
+        if let existing = try await findRecording(title: title, duration: duration) {
+            return existing
+        }
+        
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.write { db in
+            var recordingRecord = RecordingRecord(id: nil, title: title, duration: duration)
+            try recordingRecord.save(db)
+            
+            let recordingId = recordingRecord.id!
+            
+            // Link works
+            for workId in workIds {
+                try db.execute(
+                    sql: "INSERT INTO recording_work (recordingId, workId) VALUES (?, ?)",
+                    arguments: [recordingId, workId]
+                )
+            }
+            
+            // Link artists
+            for artistId in artistIds {
+                try db.execute(
+                    sql: "INSERT INTO recording_artist (recordingId, artistId) VALUES (?, ?)",
+                    arguments: [recordingId, artistId]
+                )
+            }
+            
+            return recordingRecord.toRecording()
+        }
+    }
+    
+    func linkRecordingToDigitalFile(recordingId: Int64, digitalFileId: Int64) async throws {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        try await dbQueue.write { db in
+            try db.execute(
+                sql: "INSERT OR IGNORE INTO recording_digital_file (recordingId, digitalFileId) VALUES (?, ?)",
+                arguments: [recordingId, digitalFileId]
+            )
+        }
+    }
+    
+    // MARK: - LabelRepository
+    
+    func loadLabels() async throws -> [Label] {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            let records = try LabelRecord
+                .order(Column("name"))
+                .fetchAll(db)
+            return records.map { $0.toLabel() }
+        }
+    }
+    
+    func loadLabel(id: Int64) async throws -> Label? {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            guard let record = try LabelRecord.fetchOne(db, key: id) else {
+                return nil
+            }
+            return record.toLabel()
+        }
+    }
+    
+    func saveLabel(_ label: Label) async throws -> Label {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.write { db in
+            var record = LabelRecord(from: label)
+            try record.save(db)
+            return record.toLabel()
+        }
+    }
+    
+    func findLabel(byName name: String) async throws -> Label? {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            if let record = try LabelRecord
+                .filter(Column("name") == name)
+                .fetchOne(db) {
+                return record.toLabel()
+            }
+            return nil
+        }
+    }
+    
+    func upsertLabel(name: String, sortName: String?) async throws -> Label {
+        if let existing = try await findLabel(byName: name) {
+            return existing
+        }
+        
+        let newLabel = Label(
             id: 0,
-            artistId: artistId,
+            name: name,
+            sortName: sortName,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+        
+        return try await saveLabel(newLabel)
+    }
+    
+    // MARK: - ReleaseGroupRepository
+    
+    func loadReleaseGroups() async throws -> [ReleaseGroup] {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            let records = try ReleaseGroupRecord
+                .order(Column("title"))
+                .fetchAll(db)
+            return records.map { $0.toReleaseGroup() }
+        }
+    }
+    
+    func loadReleaseGroups(forArtistId artistId: Int64) async throws -> [ReleaseGroup] {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            let records = try ReleaseGroupRecord
+                .filter(Column("primaryArtistId") == artistId)
+                .order(Column("title"))
+                .fetchAll(db)
+            return records.map { $0.toReleaseGroup() }
+        }
+    }
+    
+    func loadReleaseGroup(id: Int64, includeReleases: Bool) async throws -> ReleaseGroup? {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            guard let record = try ReleaseGroupRecord.fetchOne(db, key: id) else {
+                return nil
+            }
+            
+            if includeReleases {
+                let releases = try await loadReleases(forReleaseGroupId: id)
+                return record.toReleaseGroup(releases: releases)
+            }
+            
+            return record.toReleaseGroup()
+        }
+    }
+    
+    func saveReleaseGroup(_ releaseGroup: ReleaseGroup) async throws -> ReleaseGroup {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.write { db in
+            var record = ReleaseGroupRecord(from: releaseGroup)
+            try record.save(db)
+            return record.toReleaseGroup()
+        }
+    }
+    
+    func findReleaseGroup(title: String, primaryArtistId: Int64?) async throws -> ReleaseGroup? {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            var query = ReleaseGroupRecord.filter(Column("title") == title)
+            
+            if let artistId = primaryArtistId {
+                query = query.filter(Column("primaryArtistId") == artistId)
+            } else {
+                query = query.filter(Column("primaryArtistId") == nil)
+            }
+            
+            if let record = try query.fetchOne(db) {
+                return record.toReleaseGroup()
+            }
+            return nil
+        }
+    }
+    
+    func upsertReleaseGroup(title: String, primaryArtistId: Int64?, isCompilation: Bool) async throws -> ReleaseGroup {
+        if let existing = try await findReleaseGroup(title: title, primaryArtistId: primaryArtistId) {
+            return existing
+        }
+        
+        let newReleaseGroup = ReleaseGroup(
+            id: 0,
             title: title,
-            albumArtistName: albumArtistName,
-            composerName: composerName,
+            primaryArtistId: primaryArtistId,
             isCompilation: isCompilation,
             createdAt: Date(),
             updatedAt: Date()
         )
         
-        return try await saveAlbum(newAlbum)
+        return try await saveReleaseGroup(newReleaseGroup)
+    }
+    
+    // MARK: - AlbumRepository (UI compatibility layer)
+    
+    func loadAlbums() async throws -> [Album] {
+        let releaseGroups = try await loadReleaseGroups()
+        return releaseGroups.map { rg in
+            Album(from: rg)
+        }
+    }
+    
+    func loadAlbums(forArtistId artistId: Int64) async throws -> [Album] {
+        let releaseGroups = try await loadReleaseGroups(forArtistId: artistId)
+        return releaseGroups.map { rg in
+            Album(from: rg)
+        }
+    }
+    
+    func loadAlbum(id: Int64, includeReleases: Bool) async throws -> Album? {
+        guard let releaseGroup = try await loadReleaseGroup(id: id, includeReleases: includeReleases) else {
+            return nil
+        }
+        return Album(from: releaseGroup)
     }
     
     // MARK: - ReleaseRepository
@@ -257,25 +524,21 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
     }
     
-    func loadReleases(forAlbumId albumId: Int64) async throws -> [Release] {
+    func loadReleases(forReleaseGroupId releaseGroupId: Int64) async throws -> [Release] {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
-            try loadReleases(forAlbumId: albumId, withDb: db)
+            let records = try ReleaseRecord
+                .filter(Column("releaseGroupId") == releaseGroupId)
+                .order(Column("format"), Column("year"))
+                .fetchAll(db)
+            return records.map { $0.toRelease() }
         }
     }
     
-    func loadReleases(forAlbumId albumId: Int64, withDb: Database) throws -> [Release] {
-        let records = try ReleaseRecord
-            .filter(Column("albumId") == albumId)
-            .order(Column("format"), Column("year"))
-            .fetchAll(withDb)
-        return records.map { $0.toRelease() }
-    }
-    
-    func loadRelease(id: Int64, includeTracks: Bool) async throws -> Release? {
+    func loadRelease(id: Int64, includeMedia: Bool) async throws -> Release? {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
@@ -285,9 +548,9 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
                 return nil
             }
             
-            if includeTracks {
-                let tracks = try loadTracks(forReleaseId: id, orderByDiscAndTrackNumber: true, withDb: db)
-                return record.toRelease(tracks: tracks)
+            if includeMedia {
+                let media = try await loadMedia(forReleaseId: id)
+                return record.toRelease(media: media)
             }
             
             return record.toRelease()
@@ -300,32 +563,25 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            let record = ReleaseRecord(from: release)
+            var record = ReleaseRecord(from: release)
             try record.save(db)
-            return record.toRelease(tracks: release.tracks, album: release.album)
+            return record.toRelease()
         }
     }
     
-    func findRelease(albumId: Int64, format: ReleaseFormat, edition: String?, label: String?, year: Int?, country: String?) async throws -> Release? {
+    func findRelease(releaseGroupId: Int64, format: ReleaseFormat, edition: String?, year: Int?, country: String?) async throws -> Release? {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
             var query = ReleaseRecord
-                .filter(Column("albumId") == albumId && Column("format") == format.rawValue)
+                .filter(Column("releaseGroupId") == releaseGroupId && Column("format") == format.rawValue)
             
-            // Build query with nullable fields
             if let edition = edition {
                 query = query.filter(Column("edition") == edition)
             } else {
                 query = query.filter(Column("edition") == nil)
-            }
-            
-            if let label = label {
-                query = query.filter(Column("label") == label)
-            } else {
-                query = query.filter(Column("label") == nil)
             }
             
             if let year = year {
@@ -347,23 +603,20 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
     }
     
-    func upsertRelease(albumId: Int64, format: ReleaseFormat, edition: String?, label: String?, year: Int?, country: String?, catalogNumber: String?, barcode: String?, discs: Int, isCompilation: Bool) async throws -> Release {
-        if let existing = try await findRelease(albumId: albumId, format: format, edition: edition, label: label, year: year, country: country) {
+    func upsertRelease(releaseGroupId: Int64, format: ReleaseFormat, edition: String?, year: Int?, country: String?, catalogNumber: String?, barcode: String?) async throws -> Release {
+        if let existing = try await findRelease(releaseGroupId: releaseGroupId, format: format, edition: edition, year: year, country: country) {
             return existing
         }
         
         let newRelease = Release(
             id: 0,
-            albumId: albumId,
+            releaseGroupId: releaseGroupId,
             format: format,
             edition: edition,
-            label: label,
             year: year,
             country: country,
             catalogNumber: catalogNumber,
             barcode: barcode,
-            discs: discs,
-            isCompilation: isCompilation,
             createdAt: Date(),
             updatedAt: Date()
         )
@@ -371,7 +624,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         return try await saveRelease(newRelease)
     }
     
-    func getDefaultRelease(forAlbumId albumId: Int64) async throws -> Release? {
+    func getDefaultRelease(forReleaseGroupId releaseGroupId: Int64) async throws -> Release? {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
@@ -379,20 +632,105 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         return try await dbQueue.read { db in
             // Prefer Digital format if present
             if let digital = try ReleaseRecord
-                .filter(Column("albumId") == albumId && Column("format") == "Digital")
+                .filter(Column("releaseGroupId") == releaseGroupId && Column("format") == "Digital")
                 .fetchOne(db) {
                 return digital.toRelease()
             }
             
-            // Otherwise return the first release for this album
+            // Otherwise return the first release for this release group
             if let any = try ReleaseRecord
-                .filter(Column("albumId") == albumId)
+                .filter(Column("releaseGroupId") == releaseGroupId)
                 .fetchOne(db) {
                 return any.toRelease()
             }
             
             return nil
         }
+    }
+    
+    // MARK: - MediumRepository
+    
+    func loadMedia() async throws -> [Medium] {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            let records = try MediumRecord.fetchAll(db)
+            return records.map { $0.toMedium() }
+        }
+    }
+    
+    func loadMedia(forReleaseId releaseId: Int64) async throws -> [Medium] {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            let records = try MediumRecord
+                .filter(Column("releaseId") == releaseId)
+                .order(Column("position"))
+                .fetchAll(db)
+            return records.map { $0.toMedium() }
+        }
+    }
+    
+    func loadMedium(id: Int64) async throws -> Medium? {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            guard let record = try MediumRecord.fetchOne(db, key: id) else {
+                return nil
+            }
+            return record.toMedium()
+        }
+    }
+    
+    func saveMedium(_ medium: Medium) async throws -> Medium {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.write { db in
+            var record = MediumRecord(from: medium)
+            try record.save(db)
+            return record.toMedium()
+        }
+    }
+    
+    func findMedium(releaseId: Int64, position: Int) async throws -> Medium? {
+        guard let dbQueue = dbQueue else {
+            throw DatabaseError.notOpen
+        }
+        
+        return try await dbQueue.read { db in
+            if let record = try MediumRecord
+                .filter(Column("releaseId") == releaseId && Column("position") == position)
+                .fetchOne(db) {
+                return record.toMedium()
+            }
+            return nil
+        }
+    }
+    
+    func upsertMedium(releaseId: Int64, position: Int, format: String?, title: String?) async throws -> Medium {
+        if let existing = try await findMedium(releaseId: releaseId, position: position) {
+            return existing
+        }
+        
+        let newMedium = Medium(
+            id: 0,
+            releaseId: releaseId,
+            position: position,
+            format: format,
+            title: title,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+        
+        return try await saveMedium(newMedium)
     }
     
     // MARK: - TrackRepository
@@ -408,29 +746,21 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
     }
     
-    func loadTracks(forReleaseId releaseId: Int64, orderByDiscAndTrackNumber: Bool) async throws -> [Track] {
+    func loadTracks(forMediumId mediumId: Int64) async throws -> [Track] {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
-            try loadTracks(forReleaseId: releaseId, orderByDiscAndTrackNumber: orderByDiscAndTrackNumber, withDb: db)
+            let records = try TrackRecord
+                .filter(Column("mediumId") == mediumId)
+                .order(Column("position"))
+                .fetchAll(db)
+            return records.map { $0.toTrack() }
         }
     }
     
-    func loadTracks(forReleaseId releaseId: Int64, orderByDiscAndTrackNumber: Bool, withDb: Database) throws -> [Track] {
-        var query = TrackRecord.filter(Column("releaseId") == releaseId)
-        
-        if orderByDiscAndTrackNumber {
-            query = query.order(Column("discNumber"), Column("trackNumber"))
-        }
-        
-        let records = try query.fetchAll(withDb)
-        return records.map { $0.toTrack() }
-
-    }
-    
-    func loadTrack(id: Int64, includeDigitalFiles: Bool) async throws -> Track? {
+    func loadTrack(id: Int64) async throws -> Track? {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
@@ -439,12 +769,6 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
             guard let record = try TrackRecord.fetchOne(db, key: id) else {
                 return nil
             }
-            
-            if includeDigitalFiles {
-                let digitalFiles = try loadDigitalFiles(forTrackId: id, withDb: db)
-                return record.toTrack(digitalFiles: digitalFiles)
-            }
-            
             return record.toTrack()
         }
     }
@@ -455,9 +779,9 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            let record = TrackRecord(from: track)
+            var record = TrackRecord(from: track)
             try record.save(db)
-            return record.toTrack(digitalFiles: track.digitalFiles, release: track.release)
+            return record.toTrack()
         }
     }
     
@@ -468,7 +792,7 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         
         try await dbQueue.write { db in
             for track in tracks {
-                let record = TrackRecord(from: track)
+                var record = TrackRecord(from: track)
                 try record.save(db)
             }
         }
@@ -487,24 +811,20 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
     }
     
-    func loadDigitalFiles(forTrackId trackId: Int64) async throws -> [DigitalFile] {
+    func loadDigitalFiles(forRecordingId recordingId: Int64) async throws -> [DigitalFile] {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
-            let records = try DigitalFileRecord
-                .filter(Column("trackId") == trackId)
-                .fetchAll(db)
+            let sql = """
+                SELECT df.* FROM digital_files df
+                INNER JOIN recording_digital_file rdf ON rdf.digitalFileId = df.id
+                WHERE rdf.recordingId = ?
+            """
+            let records = try DigitalFileRecord.fetchAll(db, sql: sql, arguments: [recordingId])
             return records.map { $0.toDigitalFile() }
         }
-    }
-    
-    func loadDigitalFiles(forTrackId trackId: Int64, withDb: Database) throws -> [DigitalFile] {
-            let records = try DigitalFileRecord
-                .filter(Column("trackId") == trackId)
-                .fetchAll(withDb)
-            return records.map { $0.toDigitalFile() }
     }
     
     func loadDigitalFile(id: Int64) async throws -> DigitalFile? {
@@ -526,9 +846,9 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         return try await dbQueue.write { db in
-            let record = DigitalFileRecord(from: digitalFile)
+            var record = DigitalFileRecord(from: digitalFile)
             try record.save(db)
-            return record.toDigitalFile(track: digitalFile.track)
+            return record.toDigitalFile()
         }
     }
     
@@ -547,36 +867,34 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
     }
     
-    func loadTracksWithoutDigitalFiles() async throws -> [Track] {
+    func loadRecordingsWithoutDigitalFiles() async throws -> [Recording] {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
             let sql = """
-                SELECT t.* FROM tracks t
-                LEFT JOIN digital_files df ON df.trackId = t.id
-                WHERE df.id IS NULL
-                ORDER BY t.discNumber, t.trackNumber
+                SELECT r.* FROM recordings r
+                LEFT JOIN recording_digital_file rdf ON rdf.recordingId = r.id
+                WHERE rdf.digitalFileId IS NULL
             """
-            let records = try TrackRecord.fetchAll(db, sql: sql)
-            return records.map { $0.toTrack() }
+            let records = try RecordingRecord.fetchAll(db, sql: sql)
+            return records.map { $0.toRecording() }
         }
     }
     
-    func loadTracksWithDigitalFiles() async throws -> [Track] {
+    func loadRecordingsWithDigitalFiles() async throws -> [Recording] {
         guard let dbQueue = dbQueue else {
             throw DatabaseError.notOpen
         }
         
         return try await dbQueue.read { db in
             let sql = """
-                SELECT DISTINCT t.* FROM tracks t
-                INNER JOIN digital_files df ON df.trackId = t.id
-                ORDER BY t.discNumber, t.trackNumber
+                SELECT DISTINCT r.* FROM recordings r
+                INNER JOIN recording_digital_file rdf ON rdf.recordingId = r.id
             """
-            let records = try TrackRecord.fetchAll(db, sql: sql)
-            return records.map { $0.toTrack() }
+            let records = try RecordingRecord.fetchAll(db, sql: sql)
+            return records.map { $0.toRecording() }
         }
     }
     
@@ -595,13 +913,11 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
             var collections: [Collection] = []
             
             for collectionRecord in collectionRecords {
-                // Load track IDs for this collection
                 let trackIdRecords = try CollectionTrackRecord
                     .filter(CollectionTrackRecord.Columns.collectionId == collectionRecord.id)
                     .order(CollectionTrackRecord.Columns.position)
                     .fetchAll(db)
                 
-                // Track IDs are now Int64, need to convert from String if stored as String
                 let trackIDs = trackIdRecords.compactMap { Int64($0.trackId) }
                 
                 let collection = Collection(
@@ -623,16 +939,13 @@ class GRDBRepository: TrackRepository, CollectionRepository, ArtistRepository, A
         }
         
         try await dbQueue.write { db in
-            // Clear existing collections
             try CollectionRecord.deleteAll(db)
             try CollectionTrackRecord.deleteAll(db)
             
-            // Insert all collections
             for collection in collections {
                 let collectionRecord = CollectionRecord(from: collection)
                 try collectionRecord.insert(db)
                 
-                // Insert track associations
                 for (index, trackID) in collection.trackIDs.enumerated() {
                     let trackRecord = CollectionTrackRecord(
                         collectionId: collection.id.uuidString,
