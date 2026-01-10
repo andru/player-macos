@@ -33,31 +33,36 @@ class LibraryViewModel: ObservableObject {
         }
     }
     
+    func loadArtistRows() async {
+        do {
+            artistRows = try await deps.artistsQueries.fetchArtistRows()
+        } catch {
+            artistRows = []
+        }
+    }
+    
     func loadSongRows() async {
-//        do {
-//            songRows = try await deps.songsQueries.fetchSongRows()
-//        } catch {
-//            songRows = []
-//        }
+        do {
+            songRows = try await deps.songsQueries.fetchSongRows(
+                filter: SongRowFilter(searchText: searchText.isEmpty ? nil : searchText),
+                sort: .titleAsc,
+                limit: 1000,
+                offset: 0
+            )
+        } catch {
+            songRows = []
+        }
     }
 
     func didClickAlbum(albumRow: AlbumRow) async {
-        selectedAlbum = await loadAlbumDetails(releaseGroupId: albumRow.id)
+        // In the new model, we don't have a direct album entity
+        // For now, just do nothing or load songs for this album
+        // TODO: Implement album detail view based on local_track_tags
     }
     
-    func loadAlbumDetails(releaseGroupId: Int64) async -> Album? {
-        do {
-            let releaseGroup = try await repos.releaseGroup.loadReleaseGroup(id: releaseGroupId);
-            guard let releaseGroup = releaseGroup else {
-                return nil
-            }
-            
-            let album = Album(from: releaseGroup)
-            return album
-            
-        } catch {
-        
-        }
+    func loadAlbumDetails(albumId: String) async -> Album? {
+        // This method is no longer relevant with the new model
+        // TODO: Refactor to load songs for an album instead
         return nil
     }
     
