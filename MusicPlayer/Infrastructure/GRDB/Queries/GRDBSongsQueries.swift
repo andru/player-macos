@@ -103,7 +103,7 @@ final class GRDBSongsQueries: SongsQueries {
                     trackNumber: row.trackNumber,
                     discNumber: row.discNumber,
                     duration: row.duration,
-                    fileUrl: URL(fileURLWithPath: row.fileURL)
+                    fileUrl: row.fileURL.isEmpty ? nil : URL(fileURLWithPath: row.fileURL)
                 )
             }
         }

@@ -38,10 +38,11 @@ final class GRDBAlbumRowQuery: AlbumsQueries {
             
             return rows.map { row in
                 // Create a stable ID from album title + artist (or compilation marker)
-                let idString = if row.isCompilation {
-                    "compilation:\(row.albumTitle)"
+                let idString: String
+                if row.isCompilation {
+                    idString = "compilation:\(row.albumTitle)"
                 } else {
-                    "\(row.albumTitle):\(row.albumArtist ?? "unknown")"
+                    idString = "\(row.albumTitle):\(row.albumArtist ?? "unknown")"
                 }
                 
                 return AlbumRow(
@@ -50,7 +51,7 @@ final class GRDBAlbumRowQuery: AlbumsQueries {
                     albumArtist: row.albumArtist,
                     isCompilation: row.isCompilation,
                     trackCount: row.trackCount,
-                    artwork: nil  // TODO: Load artwork from local_track if needed
+                    artwork: nil  // TODO: Load artwork from digital_file.artworkData via local_track join
                 )
             }
         }
