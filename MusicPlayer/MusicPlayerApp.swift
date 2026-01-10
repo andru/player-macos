@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct MusicPlayerApp: App {
-    @StateObject private var container = try! AppContainer()
+    @StateObject private var container = AppContainer()
     @StateObject private var preferences = PreferencesService()
     
     var body: some Scene {

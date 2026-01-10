@@ -23,6 +23,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		643520572F129F9800183C8B /* Infrastructure */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Infrastructure; sourceTree = "<group>"; };
 		64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LibraryBundleTemplate; sourceTree = "<group>"; };
 		64E05A142F0EB9EE004A98C2 /* Database */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Database; sourceTree = "<group>"; };
 		64E05A152F0EB9EE004A98C2 /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
@@ -32,7 +33,6 @@
 		64E05BF72F0F03A9004A98C2 /* Library */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Library; sourceTree = "<group>"; };
 		64E05BF82F0F0416004A98C2 /* Player */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Player; sourceTree = "<group>"; };
 		64E05BF92F0F0438004A98C2 /* AppFrame */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = AppFrame; sourceTree = "<group>"; };
-		64E05C632F110884004A98C2 /* GRDB */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = GRDB; sourceTree = "<group>"; };
 		64E05C6A2F110BD2004A98C2 /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = App; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -75,8 +75,8 @@
 				64E05C6A2F110BD2004A98C2 /* App */,
 				64E05BF62F0F03A0004A98C2 /* Slices */,
 				64E05A142F0EB9EE004A98C2 /* Database */,
-				64E05C632F110884004A98C2 /* GRDB */,
 				64E05A162F0EB9EE004A98C2 /* Models */,
+				643520572F129F9800183C8B /* Infrastructure */,
 				64E05A152F0EB9EE004A98C2 /* Services */,
 				64E05A182F0EB9EE004A98C2 /* Repositories */,
 				64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */,
@@ -112,6 +112,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				643520572F129F9800183C8B /* Infrastructure */,
 				64E057C82F0D92BD004A98C2 /* LibraryBundleTemplate */,
 				64E05A142F0EB9EE004A98C2 /* Database */,
 				64E05A152F0EB9EE004A98C2 /* Services */,
@@ -121,7 +122,6 @@
 				64E05BF72F0F03A9004A98C2 /* Library */,
 				64E05BF82F0F0416004A98C2 /* Player */,
 				64E05BF92F0F0438004A98C2 /* AppFrame */,
-				64E05C632F110884004A98C2 /* GRDB */,
 				64E05C6A2F110BD2004A98C2 /* App */,
 			);
 			name = MusicPlayer;

@@ -166,6 +166,14 @@ extension DatabaseMigrator {
                 t.foreignKey(["trackId"], references: "tracks", columns: ["id"], onDelete: .cascade)
             }
             
+            // Table for storing file location security bookmarks
+            try db.create(table: "file_location") { t in
+                t.column("id", .text) .primaryKey()
+                t.column("bookmarkData", .blob).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            
             // Create indexes for search performance
             try db.create(index: "idx_artists_name", on: "artists", columns: ["name"])
             try db.create(index: "idx_works_title", on: "works", columns: ["title"])

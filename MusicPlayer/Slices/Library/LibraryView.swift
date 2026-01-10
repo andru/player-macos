@@ -14,7 +14,7 @@ struct LibraryView: View {
             // Toolbar
             HStack {
                 // Import button
-                Button(action: { Task { await importMusicDirectory() } }) {
+                Button(action: { Task { try await importMusicDirectory() } }) {
                     HStack {
                         Image(systemName: "plus")
                         Text("Import")
@@ -60,53 +60,6 @@ struct LibraryView: View {
 //        }
 //        return selectedView.rawValue
     }
-/*
-    private var filteredTracks: [Track] {
-        var tracks = library.tracks
-        
-        if let collection = selectedCollection {
-            tracks = tracks.filter { collection.trackIDs.contains($0.id) }
-        }
-        
-        if !searchText.isEmpty {
-            tracks = tracks.filter { track in
-                track.title.localizedCaseInsensitiveContains(searchText) ||
-                track.artistName.localizedCaseInsensitiveContains(searchText) ||
-                (track.release?.album?.title ?? "").localizedCaseInsensitiveContains(searchText)
-            }
-        }
-        
-        return tracks
-    }
-    
-//    private var gridView: some
-    
-    
-    private var filteredAlbums: [Album] {
-        var albums = library.albums
-        
-        if !searchText.isEmpty {
-            albums = albums.filter { album in
-                album.title.localizedCaseInsensitiveContains(searchText) ||
-                album.title.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-        
-        return albums
-    }
-    
-    private var filteredArtists: [Artist] {
-        var artists = library.artists
-        
-        if !searchText.isEmpty {
-            artists = artists.filter { artist in
-                artist.name.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-        
-        return artists
-    }
-    */
     
     private func importMusicFiles() async {
         let panel = NSOpenPanel()
@@ -119,7 +72,7 @@ struct LibraryView: View {
         }
     }
     
-    private func importMusicDirectory() async {
+    private func importMusicDirectory() async throws {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = true
@@ -129,7 +82,11 @@ struct LibraryView: View {
         panel.prompt = "Import"
         
         if panel.runModal() == .OK, let url = panel.url {
-//            await library.importDirectory(url: url)
+            do {
+                let importReport = try await container.featureDeps.library.musicImportService.importDirectory(url: url)
+            } catch is CancellationError {
+                // swallow
+            }
         }
     }
 }

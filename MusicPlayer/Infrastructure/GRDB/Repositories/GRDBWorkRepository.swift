@@ -28,7 +28,7 @@ class GRDBWorkRepository: WorkRepository {
     
     func saveWork(_ work: Work) async throws -> Work {
         return try await dbWriter.write { db in
-            var record = WorkRecord(from: work)
+            let record = WorkRecord(from: work)
             try record.save(db)
             return record.toWork()
         }
@@ -56,14 +56,15 @@ class GRDBWorkRepository: WorkRepository {
            let existing = try await findWork(title: title, primaryArtistId: primaryArtistId) {
             return existing
         }
-        
+
         // Create new work
         return try await dbWriter.write { db in
-            var workRecord = WorkRecord(id: nil, title: title)
-            try workRecord.save(db)
-            
-            let workId = workRecord.id!
-            
+            let inserted = try WorkRecord(id: nil, title: title).inserted(db)
+
+            guard let workId = inserted.id else {
+                throw DatabaseError.badSchema(message: "Failed to retrieve ID after insert")
+            }
+
             // Link artists
             for artistId in artistIds {
                 try db.execute(
@@ -71,8 +72,8 @@ class GRDBWorkRepository: WorkRepository {
                     arguments: [workId, artistId]
                 )
             }
-            
-            return workRecord.toWork()
+
+            return inserted.toWork()
         }
     }
     

@@ -52,9 +52,11 @@ final class AppContainer: ObservableObject {
         do {
             let appLibraryContext = try await appLibrary.openLibrary()
             let db = try AppDatabase(url: appLibraryContext.libraryDbURL)
+            let bookmarkStore = GRDBBookmarkStore(dbWriter: db.dbWriter)
+            let fileAccess = SecurityScopedFileAccessCoordinator(store: bookmarkStore)
             
             // Infrastructure implementations (GRDB-backed)
-            // Main Repos
+            // MARK: Main Repos
             let repos = Repositories(
                 artist: GRDBArtistRepository(dbWriter: db.dbWriter),
                 collection: GRDBCollectionRepository(dbWriter: db.dbWriter),
@@ -72,7 +74,7 @@ final class AppContainer: ObservableObject {
             let songsQueries = GRDBSongsQueries(dbWriter: db.dbWriter)
             
             // Init services
-            let musicImportService = MusicImportService(repositories: repos)
+            let musicImportService = MusicImportService(fileAccess: fileAccess, bookmarkStore: bookmarkStore, appLibrary: appLibrary, repositories: repos)
             let audioPlayer = AudioPlayerService()
             
             // Bundle per feature
@@ -85,6 +87,7 @@ final class AppContainer: ObservableObject {
             )
             let library = LibraryDependencies(
                 audioPlayer: audioPlayer,
+                musicImportService: musicImportService,
                 albumsQueries: albumsQueries,
                 songsQueries: songsQueries
             )

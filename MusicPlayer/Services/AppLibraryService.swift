@@ -3,12 +3,15 @@ import Foundation
 
 @MainActor
 final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
-
+    
+    //    // Initial bookmark is stores in UserDefaults
+    //    private let bookmarkStore = UserDefaultsBookmarkStore()
+    
     // UI / setup state
     @Published var needsLibraryLocationSetup = false
     @Published var libraryURL: URL? = nil
     @Published var libraryDbURL: URL? = nil
-
+    
     // Internal
     private let bookmarkKey = "MusicPlayerLibraryBookmark"
     internal let directoryBookmarksKey = "MusicPlayerDirectoryBookmarks"
@@ -19,15 +22,16 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
     // Task management for proper lifecycle
     private var initializationTask: Task<Void, Never>?
     
-    // Supported audio file extensions
-    private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
-
     // MARK: - Init
     init() {
         // Restore directory bookmarks for previously imported directories
         restoreDirectoryBookmarks()
     }
-
+    
+    //    func registerLibraryLocation(from url: URL) async throws {
+    //        try await bookmarkStore.registerAppLibraryLocation(url: url)
+    //    }
+    
     func openLibrary() async throws -> AppLibraryContext{
         
         // Attempt to restore a persisted library location via a security-scoped bookmark
@@ -44,16 +48,16 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
         // Try default ~/Music/MusicPlayer.library
         if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
             let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
-
+            
             do {
                 // Ensure the bundle directory exists (create if needed)
                 if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
                     try createLibraryBundle(at: libraryBundleURL)
                 }
-
+                
                 // Start access and load library contents
                 try await startAccessingAndLoad(at: libraryBundleURL)
-
+                
                 // Persist a security-scoped bookmark for next launch
                 persistBookmark(for: libraryBundleURL)
             } catch {
@@ -73,14 +77,14 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
         }
         return AppLibraryContext(libraryURL: libraryURL, needsSetup: self.needsLibraryLocationSetup)
     }
-
+    
     /// Called by UI when user selects a folder to host the library.
     func setLibraryLocation(url: URL) {
         // User's selected folder -> create/ensure MusicPlayer.library inside it
         let libraryBundleURL = url.appendingPathComponent("MusicPlayer.library", isDirectory: true)
         // Stop previous access if any
         stopAccessingSecurityScopedURLIfNeeded()
-
+        
         // Cancel any ongoing initialization
         initializationTask?.cancel()
         
@@ -89,7 +93,7 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
                 if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
                     try createLibraryBundle(at: libraryBundleURL)
                 }
-
+                
                 try await startAccessingAndLoad(at: libraryBundleURL)
                 persistBookmark(for: libraryBundleURL)
                 needsLibraryLocationSetup = false
@@ -99,18 +103,18 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
             }
         }
     }
-
+    
     // MARK: - Bundle creation
     private func createLibraryBundle(at bundleURL: URL) throws {
         let fm = FileManager.default
-
+        
         // Create bundle, Contents, and Resources folders
         try fm.createDirectory(at: bundleURL, withIntermediateDirectories: true, attributes: nil)
         let contentsURL = bundleURL.appendingPathComponent("Contents", isDirectory: true)
         let resourcesURL = contentsURL.appendingPathComponent("Resources", isDirectory: true)
         try fm.createDirectory(at: contentsURL, withIntermediateDirectories: true, attributes: nil)
         try fm.createDirectory(at: resourcesURL, withIntermediateDirectories: true, attributes: nil)
-
+        
         // Write Contents/Info.plist using a minimal template
         let infoPlist: [String: Any] = [
             "CFBundlePackageType": "BNDL",
@@ -121,18 +125,18 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
             "CFBundleIconFile": "LibraryIcon.pdf",
             "VibezLibraryFormatVersion": 1
         ]
-
+        
         let plistData = try PropertyListSerialization.data(fromPropertyList: infoPlist, format: .xml, options: 0)
         let infoURL = contentsURL.appendingPathComponent("Info.plist")
         try plistData.write(to: infoURL, options: .atomic)
-
+        
         // Copy an embedded LibraryIcon.pdf into Resources if present in app bundle
         if let iconURL = Bundle.main.url(forResource: "LibraryIcon", withExtension: "pdf") {
             let dest = resourcesURL.appendingPathComponent("LibraryIcon.pdf")
             try? fm.copyItem(at: iconURL, to: dest)
         }
     }
-
+    
     // MARK: - Load / Save
     private func startAccessingAndLoad(at bundleURL: URL) async throws {
         // Begin security-scoped access if available (sandboxed apps need this for user-chosen locations)
@@ -143,7 +147,7 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
         self.libraryURL = bundleURL
         self.libraryDbURL = bundleURL.appendingPathComponent("Contents/Resources/library.db")
     }
-
+    
     private func stopAccessingSecurityScopedURLIfNeeded() {
         if isSecurityScoped, let u = securityScopedURL {
             u.stopAccessingSecurityScopedResource()
@@ -161,7 +165,7 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
             print("LibraryManager: failed to create bookmark: \(error)")
         }
     }
-
+    
     private func restoreLibraryFromBookmark() async throws -> URL? {
         guard let bookmarkData = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
         var isStale = false
@@ -170,14 +174,14 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
             if isStale {
                 print("LibraryManager: bookmark is stale")
             }
-
+            
             try await startAccessingAndLoad(at: url)
             return url
         } catch {
             throw AppLibraryError.bookmarkInvalid
         }
     }
-
+    
     // MARK: - Directory bookmarks
     private func persistDirectoryBookmark(for url: URL) {
         do {
@@ -190,7 +194,7 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
         }
     }
     
-    private func restoreDirectoryBookmarks() {
+    func restoreDirectoryBookmarks() {
         guard let bookmarks = UserDefaults.standard.dictionary(forKey: directoryBookmarksKey) as? [String: Data] else { return }
         
         for (path, bookmarkData) in bookmarks {
@@ -222,90 +226,6 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
         }
         accessedDirectories.removeAll()
     }
-
-    /*
-    // MARK: - Track creation and metadata helpers
-    func importFiles(urls: [URL]) async {
-        for url in urls {
-            do {
-                let track = try await databaseManager.importAudioFile(url: url)
-                print("Imported: \(track.title)")
-            } catch {
-                print("Failed to import \(url.lastPathComponent): \(error)")
-            }
-        }
-        // Reload library to reflect changes
-        await loadLibraryData()
-    }
-    
-    func importDirectory(url: URL) async {
-        // Persist bookmark for this directory to maintain access across app launches
-        persistDirectoryBookmark(for: url)
-        
-        // Start accessing the selected directory and keep it accessed
-        if url.startAccessingSecurityScopedResource() {
-            // Add to accessed directories for resource management (cleaned up in deinit)
-            if !accessedDirectories.contains(url) {
-                accessedDirectories.append(url)
-            }
-        }
-        
-        // Recursively find all music files
-        let musicFiles = findMusicFiles(in: url)
-        
-        // Import all found files
-        for fileURL in musicFiles {
-            do {
-                let track = try await databaseManager.importAudioFile(url: fileURL)
-                print("Imported: \(track.title)")
-            } catch {
-                print("Failed to import \(fileURL.lastPathComponent): \(error)")
-            }
-        }
-        
-        // Reload library to reflect changes
-        await loadLibraryData()
-    }
-    
-    private func findMusicFiles(in directory: URL) -> [URL] {
-        var musicFiles: [URL] = []
-        let fileManager = FileManager.default
-        
-        guard let enumerator = fileManager.enumerator(
-            at: directory,
-            includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else {
-            return musicFiles
-        }
-        
-        for case let fileURL as URL in enumerator {
-            do {
-                let resourceValues = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
-                if let isRegularFile = resourceValues.isRegularFile, isRegularFile {
-                    let fileExtension = fileURL.pathExtension.lowercased()
-                    if audioExtensions.contains(fileExtension) {
-                        musicFiles.append(fileURL)
-                    }
-                }
-            } catch {
-                print("LibraryManager: error checking file: \(error)")
-            }
-        }
-        
-        return musicFiles
-    }*/
-    
-    // MARK: - Cleanup
-    deinit {
-        // Cancel any pending tasks
-        initializationTask?.cancel()
-    
-//        CoPilot - stop adding these to deinit
-//        stopAccessingSecurityScopedURLIfNeeded()
-//        stopAccessingDirectories()
-    }
-
 }
 
 struct AppLibraryContext {

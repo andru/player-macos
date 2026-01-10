@@ -4,10 +4,69 @@ import Foundation
 /// Service responsible for importing audio files into the music library
 /// Implements the MusicBrainz-aligned import pipeline
 class MusicImportService {
+    
+    let fileAccess: any FileAccessCoordinating
+    let bookmarkStore: any BookmarkRegistering
+    let appLibrary: AppLibraryService
+    let repos: Repositories
+    
+    // Supported audio file extensions
+    private let audioExtensions: Set<String> = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
 
-    let repos: Repositories;
-    init (repositories: Repositories) {
+    init (fileAccess: SecurityScopedFileAccessCoordinator, bookmarkStore: GRDBBookmarkStore, appLibrary: AppLibraryService, repositories: Repositories) {
+        self.fileAccess = fileAccess
+        self.bookmarkStore = bookmarkStore
+        self.appLibrary = appLibrary
         self.repos = repositories
+    }
+    
+    func importDirectory(url: URL) async throws -> ImportReport {
+        // Persist bookmark for this directory to maintain access across app launches
+        do {
+            let locationID = try await bookmarkStore.registerLocation(url: url)
+
+            let importedTracks = try await fileAccess.withAccess(to: locationID) { folderURL in
+                // Recursively find all music files
+                let musicFiles = try findMusicFiles(in: folderURL)
+                // Import all found files
+                return try await importAudioFiles(urls: musicFiles)
+            }
+            return ImportReport(tracks: importedTracks)
+        } catch {
+            print("Warning: Failed to register bookmark for \(url.path): \(error)")
+        }
+        return ImportReport(tracks: [])
+    }
+    
+    private func findMusicFiles(in directory: URL) throws -> [URL] {
+        var musicFiles: [URL] = []
+        let fileManager = FileManager.default
+
+        guard let enumerator = fileManager.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return musicFiles
+        }
+
+        for case let fileURL as URL in enumerator {
+            try Task.checkCancellation()
+
+            do {
+                let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
+                if values.isRegularFile == true,
+                   audioExtensions.contains(fileURL.pathExtension.lowercased()) {
+                    musicFiles.append(fileURL)
+                }
+            } catch is CancellationError {
+                throw CancellationError() // critical: propagate cancellation
+            } catch {
+                // log + continue for ordinary filesystem errors
+            }
+        }
+
+        return musicFiles
     }
     
     /// Import an audio file following the MusicBrainz-aligned pipeline:
@@ -116,6 +175,7 @@ class MusicImportService {
         
         for url in urls {
             do {
+                try Task.checkCancellation()
                 let track = try await importAudioFile(url: url)
                 importedTracks.append(track)
             } catch {
@@ -362,4 +422,8 @@ struct AudioMetadata {
     let duration: TimeInterval?
     let artworkData: Data?
     let isCompilation: Bool
+}
+
+struct ImportReport {
+    let tracks: [Track]
 }
