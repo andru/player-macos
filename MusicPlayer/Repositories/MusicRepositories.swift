@@ -195,3 +195,57 @@ protocol DigitalFileRepository {
     func findDigitalFile(byFileURL fileURL: URL) async throws -> DigitalFile?
     
 }
+
+/// Protocol defining local track persistence operations
+protocol LocalTrackRepository {
+    /// Save or update a local track
+    func saveLocalTrack(_ localTrack: LocalTrack) async throws -> LocalTrack
+    
+    /// Find a local track by content hash
+    func findLocalTrack(byContentHash contentHash: String) async throws -> LocalTrack?
+    
+    /// Find a local track by file URL
+    func findLocalTrack(byFileURL fileURL: String) async throws -> LocalTrack?
+    
+    /// Load all local tracks
+    func loadLocalTracks() async throws -> [LocalTrack]
+}
+
+/// Protocol defining local track tags persistence operations
+protocol LocalTrackTagsRepository {
+    /// Save or update local track tags
+    func saveLocalTrackTags(_ tags: LocalTrackTags) async throws -> LocalTrackTags
+    
+    /// Load tags for a specific local track
+    func loadLocalTrackTags(forLocalTrackId localTrackId: Int64) async throws -> LocalTrackTags?
+    
+    /// Load all local track tags
+    func loadAllLocalTrackTags() async throws -> [LocalTrackTags]
+}
+
+/// Protocol defining library track persistence operations
+protocol LibraryTrackRepository {
+    /// Save or update a library track
+    func saveLibraryTrack(_ libraryTrack: LibraryTrack) async throws -> LibraryTrack
+    
+    /// Load a specific library track by ID
+    func loadLibraryTrack(id: Int64) async throws -> LibraryTrack?
+    
+    /// Load all library tracks
+    func loadLibraryTracks() async throws -> [LibraryTrack]
+    
+    /// Find library track by local track ID
+    func findLibraryTrack(byLocalTrackId localTrackId: Int64) async throws -> LibraryTrack?
+}
+
+/// Protocol defining track match persistence operations
+protocol TrackMatchRepository {
+    /// Save or update a track match
+    func saveTrackMatch(_ trackMatch: TrackMatch) async throws -> TrackMatch
+    
+    /// Load matches for a specific library track
+    func loadTrackMatches(forLibraryTrackId libraryTrackId: Int64) async throws -> [TrackMatch]
+    
+    /// Load all track matches
+    func loadAllTrackMatches() async throws -> [TrackMatch]
+}

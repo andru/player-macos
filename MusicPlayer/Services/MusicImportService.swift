@@ -2,7 +2,7 @@ import Foundation
 @preconcurrency import AVFoundation
 
 /// Service responsible for importing audio files into the music library
-/// Implements the MusicBrainz-aligned import pipeline
+/// Focuses on audio-file-first approach with bridge layer
 class MusicImportService {
 
     let repos: Repositories;
@@ -10,109 +10,112 @@ class MusicImportService {
         self.repos = repositories
     }
     
-    /// Import an audio file following the MusicBrainz-aligned pipeline:
-    /// 1. Extract metadata
-    /// 2. Upsert Artist(s)
-    /// 3. Upsert Work
-    /// 4. Upsert Recording
-    /// 5. Upsert ReleaseGroup
-    /// 6. Upsert Release
-    /// 7. Create/Find Medium
-    /// 8. Create Track
-    /// 9. Create DigitalFile
-    /// 10. Link Recording to DigitalFile
-    func importAudioFile(url: URL) async throws -> Track {
-        // 1. Extract metadata from the audio file
+    /// Import an audio file into the bridge layer:
+    /// 1. Compute content hash
+    /// 2. Create/update LocalTrack
+    /// 3. Extract tags
+    /// 4. Create LocalTrackTags
+    /// 5. Create/update LibraryTrack
+    /// Does NOT create MusicBrainz entities during import
+    func importAudioFile(url: URL) async throws -> LibraryTrack {
+        // 1. Compute content hash for deduplication
+        let contentHash = try FileHasher.computeContentHashStreaming(for: url)
+        
+        // 2. Check if we already have this file (by content hash)
+        var localTrack: LocalTrack
+        if let existing = try await repos.localTrack.findLocalTrack(byContentHash: contentHash) {
+            // File already exists, update it
+            localTrack = LocalTrack(
+                id: existing.id,
+                fileURL: url.path,
+                bookmarkData: nil, // TODO: Create security-scoped bookmark
+                contentHash: contentHash,
+                fileSize: try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64,
+                mtime: try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date,
+                duration: nil, // Will be set from metadata
+                createdAt: existing.createdAt,
+                updatedAt: Date()
+            )
+        } else {
+            // New file
+            localTrack = LocalTrack(
+                id: 0,
+                fileURL: url.path,
+                bookmarkData: nil, // TODO: Create security-scoped bookmark
+                contentHash: contentHash,
+                fileSize: try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64,
+                mtime: try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date,
+                duration: nil // Will be set from metadata
+            )
+        }
+        
+        // 3. Extract metadata from the audio file
         let metadata = try await extractMetadata(from: url)
         
-        // 2. Upsert Artist(s)
-        let primaryArtistName = metadata.albumArtistName ?? metadata.artistName
-        let artist = try await repos.artist.upsertArtist(
-            name: primaryArtistName,
-            sortName: nil
-        )
-        
-        // 3. Upsert Work (by title + primary artist heuristic)
-        let work = try await repos.work.upsertWork(
-            title: metadata.title,
-            artistIds: [artist.id]
-        )
-        
-        // 4. Upsert Recording
-        let recording = try await repos.recording.upsertRecording(
-            title: metadata.title,
+        // Update duration from metadata
+        localTrack = LocalTrack(
+            id: localTrack.id,
+            fileURL: localTrack.fileURL,
+            bookmarkData: localTrack.bookmarkData,
+            contentHash: localTrack.contentHash,
+            fileSize: localTrack.fileSize,
+            mtime: localTrack.mtime,
             duration: metadata.duration,
-            workIds: [work.id],
-            artistIds: [artist.id]
+            createdAt: localTrack.createdAt,
+            updatedAt: localTrack.updatedAt
         )
         
-        // 5. Upsert ReleaseGroup (album concept)
-        let releaseGroup = try await repos.releaseGroup.upsertReleaseGroup(
-            title: metadata.albumName,
-            primaryArtistId: metadata.isCompilation ? nil : artist.id,
-            isCompilation: metadata.isCompilation
-        )
+        // Save LocalTrack
+        let savedLocalTrack = try await repos.localTrack.saveLocalTrack(localTrack)
         
-        // 6. Upsert Release under the ReleaseGroup
-        let release = try await repos.release.upsertRelease(
-            releaseGroupId: releaseGroup.id,
-            format: .digital,
-            edition: nil,
+        // 4. Create LocalTrackTags from extracted metadata
+        let tags = LocalTrackTags(
+            id: 0,
+            localTrackId: savedLocalTrack.id,
+            title: metadata.title,
+            artist: metadata.artistName,
+            album: metadata.albumName,
+            albumArtist: metadata.albumArtistName,
+            composer: metadata.composerName,
+            trackNumber: metadata.trackNumber,
+            discNumber: metadata.discNumber,
             year: metadata.year,
-            country: nil,
-            catalogNumber: nil,
-            barcode: nil
+            isCompilation: metadata.isCompilation,
+            genre: metadata.genre,
+            recordingMBID: metadata.recordingMBID,
+            releaseMBID: metadata.releaseMBID,
+            releaseGroupMBID: metadata.releaseGroupMBID,
+            artistMBID: metadata.artistMBID,
+            workMBID: metadata.workMBID
         )
         
-        // 7. Create/Find Medium
-        let discNumber = metadata.discNumber ?? 1
-        let medium = try await repos.medium.upsertMedium(
-            releaseId: release.id,
-            position: discNumber,
-            format: nil,
-            title: nil
-        )
+        let savedTags = try await repos.localTrackTags.saveLocalTrackTags(tags)
         
-        // 8. Create Track (pointing to Recording)
-        let track = Track(
-            id: 0,
-            mediumId: medium.id,
-            recordingId: recording.id,
-            position: metadata.trackNumber ?? 1,
-            titleOverride: nil,
-            createdAt: Date(),
-            updatedAt: Date()
-        )
-        
-        let savedTrack = try await repos.track.saveTrack(track)
-        
-        // 9. Create DigitalFile
-        let digitalFile = DigitalFile(
-            id: 0,
-            fileURL: url,
-            bookmarkData: nil,
-            fileHash: nil,
-            fileSize: try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64,
-            addedAt: Date(),
-            lastScannedAt: Date(),
-            metadataJSON: nil,
-            artworkData: metadata.artworkData
-        )
-        
-        let savedDigitalFile = try await repos.digitalFile.saveDigitalFile(digitalFile)
-        
-        // 10. Link Recording to DigitalFile (many-to-many)
-        try await repos.recording.linkRecordingToDigitalFile(
-            recordingId: recording.id,
-            digitalFileId: savedDigitalFile.id
-        )
-        
-        return savedTrack
+        // 5. Create or update LibraryTrack linking both
+        if let existingLibraryTrack = try await repos.libraryTrack.findLibraryTrack(byLocalTrackId: savedLocalTrack.id) {
+            // Update existing LibraryTrack to point to new tags
+            let updatedLibraryTrack = LibraryTrack(
+                id: existingLibraryTrack.id,
+                localTrackId: savedLocalTrack.id,
+                localTrackTagsId: savedTags.id,
+                createdAt: existingLibraryTrack.createdAt,
+                updatedAt: Date()
+            )
+            return try await repos.libraryTrack.saveLibraryTrack(updatedLibraryTrack)
+        } else {
+            // Create new LibraryTrack
+            let libraryTrack = LibraryTrack(
+                id: 0,
+                localTrackId: savedLocalTrack.id,
+                localTrackTagsId: savedTags.id
+            )
+            return try await repos.libraryTrack.saveLibraryTrack(libraryTrack)
+        }
     }
     
     /// Import multiple audio files
-    func importAudioFiles(urls: [URL]) async throws -> [Track] {
-        var importedTracks: [Track] = []
+    func importAudioFiles(urls: [URL]) async throws -> [LibraryTrack] {
+        var importedTracks: [LibraryTrack] = []
         
         for url in urls {
             do {
@@ -245,7 +248,12 @@ class MusicImportService {
             genre: genre,
             duration: duration,
             artworkData: artworkData,
-            isCompilation: isCompilation
+            isCompilation: isCompilation,
+            recordingMBID: nil, // TODO: Extract from tags
+            releaseMBID: nil, // TODO: Extract from tags
+            releaseGroupMBID: nil, // TODO: Extract from tags
+            artistMBID: nil, // TODO: Extract from tags
+            workMBID: nil // TODO: Extract from tags
         )
     }
     
@@ -362,4 +370,11 @@ struct AudioMetadata {
     let duration: TimeInterval?
     let artworkData: Data?
     let isCompilation: Bool
+    
+    // MusicBrainz IDs if present in tags
+    let recordingMBID: String?
+    let releaseMBID: String?
+    let releaseGroupMBID: String?
+    let artistMBID: String?
+    let workMBID: String?
 }

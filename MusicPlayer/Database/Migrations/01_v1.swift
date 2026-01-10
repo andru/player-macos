@@ -150,6 +150,67 @@ extension DatabaseMigrator {
                 t.primaryKey(["recordingId", "digitalFileId"])
             }
             
+            // Create LocalTrack table (audio files on disk)
+            try db.create(table: "local_tracks") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("fileURL", .text).notNull()
+                t.column("bookmarkData", .blob)
+                t.column("contentHash", .text).notNull()
+                t.column("fileSize", .integer)
+                t.column("mtime", .datetime)
+                t.column("duration", .double)
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            
+            // Create LocalTrackTags table (tags from audio files)
+            try db.create(table: "local_track_tags") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("localTrackId", .integer).notNull()
+                    .references("local_tracks", onDelete: .cascade)
+                t.column("title", .text)
+                t.column("artist", .text)
+                t.column("album", .text)
+                t.column("albumArtist", .text)
+                t.column("composer", .text)
+                t.column("trackNumber", .integer)
+                t.column("discNumber", .integer)
+                t.column("year", .integer)
+                t.column("isCompilation", .boolean).notNull().defaults(to: false)
+                t.column("genre", .text)
+                t.column("recordingMBID", .text)
+                t.column("releaseMBID", .text)
+                t.column("releaseGroupMBID", .text)
+                t.column("artistMBID", .text)
+                t.column("workMBID", .text)
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            
+            // Create LibraryTrack table (playable tracks)
+            try db.create(table: "library_tracks") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("localTrackId", .integer).notNull()
+                    .references("local_tracks", onDelete: .cascade)
+                t.column("localTrackTagsId", .integer).notNull()
+                    .references("local_track_tags", onDelete: .cascade)
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            
+            // Create TrackMatch table (library track to recording linkage)
+            try db.create(table: "track_matches") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("libraryTrackId", .integer).notNull()
+                    .references("library_tracks", onDelete: .cascade)
+                t.column("recordingId", .integer).notNull()
+                    .references("recordings", onDelete: .cascade)
+                t.column("confidence", .double).notNull()
+                t.column("matchedAt", .datetime).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            
             // Create collections table
             try db.create(table: "collections") { t in
                 t.column("id", .text).primaryKey()
@@ -189,6 +250,20 @@ extension DatabaseMigrator {
             try db.create(index: "idx_release_label_label", on: "release_label", columns: ["labelId"])
             try db.create(index: "idx_recording_digital_file_recording", on: "recording_digital_file", columns: ["recordingId"])
             try db.create(index: "idx_recording_digital_file_file", on: "recording_digital_file", columns: ["digitalFileId"])
+            
+            // Indexes for new bridge tables
+            try db.create(index: "idx_local_tracks_content_hash", on: "local_tracks", columns: ["contentHash"])
+            try db.create(index: "idx_local_tracks_file_url", on: "local_tracks", columns: ["fileURL"])
+            try db.create(index: "idx_local_track_tags_local_track", on: "local_track_tags", columns: ["localTrackId"])
+            try db.create(index: "idx_local_track_tags_title", on: "local_track_tags", columns: ["title"])
+            try db.create(index: "idx_local_track_tags_artist", on: "local_track_tags", columns: ["artist"])
+            try db.create(index: "idx_local_track_tags_album", on: "local_track_tags", columns: ["album"])
+            try db.create(index: "idx_local_track_tags_album_artist", on: "local_track_tags", columns: ["albumArtist"])
+            try db.create(index: "idx_local_track_tags_composer", on: "local_track_tags", columns: ["composer"])
+            try db.create(index: "idx_library_tracks_local_track", on: "library_tracks", columns: ["localTrackId"])
+            try db.create(index: "idx_library_tracks_tags", on: "library_tracks", columns: ["localTrackTagsId"])
+            try db.create(index: "idx_track_matches_library_track", on: "track_matches", columns: ["libraryTrackId"])
+            try db.create(index: "idx_track_matches_recording", on: "track_matches", columns: ["recordingId"])
         }
     }
 }

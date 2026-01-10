@@ -11,24 +11,30 @@ final class GRDBAlbumRowQuery: AlbumsQueries {
     
     func fetchAlbumRows() async throws -> [AlbumRow] {
         return try await dbWriter.read { db in
-            // Find work by title with artist link
-            var sql = """
+            // Query albums from local_track_tags via library_tracks
+            // Group by (album, albumArtist OR compilation handling)
+            let sql = """
                 SELECT
-                  r.id AS id,
-                  rg.primaryArtistId AS primaryArtistId,
-                  rg.title AS title,
-                  a.name AS primaryArtistName,
-                  COALESCE(tc.trackCount, 0) AS trackCount
-                FROM release r
-                LEFT JOIN release_group rg ON r.releaseGroupId = rg.id
-                LEFT JOIN artists a ON a.id = rg.primaryArtistId;
+                  ROW_NUMBER() OVER (ORDER BY tags.album COLLATE NOCASE) AS id,
+                  COALESCE(tags.album, 'Unknown Album') AS title,
+                  NULL AS primaryArtistId,
+                  CASE 
+                    WHEN tags.isCompilation = 1 THEN 'Various Artists'
+                    ELSE COALESCE(tags.albumArtist, tags.artist, 'Unknown Artist')
+                  END AS primaryArtistName,
+                  NULL AS artwork
+                FROM library_tracks lt
+                JOIN local_track_tags tags ON tags.id = lt.localTrackTagsId
+                GROUP BY 
+                  COALESCE(tags.album, 'Unknown Album'),
+                  CASE 
+                    WHEN tags.isCompilation = 1 THEN 'Various Artists'
+                    ELSE COALESCE(tags.albumArtist, tags.artist, 'Unknown Artist')
+                  END
+                ORDER BY tags.album COLLATE NOCASE
             """
             
-            sql += " ORDER BY rg.title COLLATE NOCASE "
-            sql += " LIMIT ? OFFSET ?"
-          
-            
-            let albums = try AlbumRowRecord.fetchAll(db, sql: sql, arguments: [9999, 0])
+            let albums = try AlbumRowRecord.fetchAll(db, sql: sql)
             return albums.map { $0.toAlbumRow() }
         }
     }
