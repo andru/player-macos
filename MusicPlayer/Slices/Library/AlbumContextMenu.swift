@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct AlbumContextMenu: View {
+struct AlbumRowContextMenu: View {
     @EnvironmentObject var container: AppContainer
-    let album: Album
+    let albumRow: AlbumRow
     
 //    private var allTracks: [Track] {
 //        album.releases.flatMap { $0.tracks }

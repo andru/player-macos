@@ -14,6 +14,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		64351EFC2F12689800183C8B /* QuickContext.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QuickContext.md; sourceTree = "<group>"; };
 		64E0579F2F0D9016004A98C2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A2000001000000000000001 /* MusicPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayerApp.swift; sourceTree = "<group>"; };
 		A2000009000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -62,6 +63,7 @@
 		A5000001000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				64351EFC2F12689800183C8B /* QuickContext.md */,
 				A5000002000000000000001 /* MusicPlayer */,
 				A5000003000000000000001 /* Products */,
 			);

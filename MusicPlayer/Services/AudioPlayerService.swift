@@ -7,7 +7,7 @@ import Combine
 /// Decoupled playback state for optimal SwiftUI performance.
 /// Only views that need playback state should observe this object.
 class PlayerState: ObservableObject {
-    @Published var currentTrack: Track?
+    @Published var currentTrack: PlayerMedia?
     @Published var isPlaying: Bool = false
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 0
@@ -26,28 +26,22 @@ class AudioPlayerService: NSObject, ObservableObject {
     private var lastPublishedTime: Date = Date()
     private let timeUpdateThrottle: TimeInterval = 0.5 // Update every 0.5s instead of 0.1s
     
-    func play(track: Track) throws {
-        if (!track.hasDigitalFiles){
-        // raise error
-            throw AudioPlayerServiceError("No digital file available for track: \(track.title)")
-        }
+    func play(track: PlayerMedia) throws {
         // Stop current playback
         stop()
         
-        // Get the file URL from the first digital file
-        guard let fileURL = track.recording?.digitalFiles[0].fileURL else {
-            throw AudioPlayerServiceError("No digital file available for track: \(track.title)")
-            return
-        }
-        
         do {
+            // Safely unwrap recording and its first digital file. Return nil if not available.
+            guard let fileURL = track.fileURL else {
+                return
+            }
             // Create and configure audio player
             player = try AVAudioPlayer(contentsOf: fileURL)
             player?.prepareToPlay()
 //            player?.delegate = self
             
             playerState.currentTrack = track
-            playerState.duration = track.duration ?? 0
+            playerState.duration = player?.duration ?? 0
             
             // Start playback
             player?.play()
@@ -123,7 +117,7 @@ class AudioPlayerService: NSObject, ObservableObject {
 
     // MARK: - Queue Management
     
-    func queueTracks(_ tracks: [Track], startPlaying: Bool = true, behavior: PlaybackBehavior = .clearAndPlay) {
+    func queueTracks(_ tracks: [PlayerMedia], startPlaying: Bool = true, behavior: PlaybackBehavior = .clearAndPlay) {
         switch behavior {
         case .clearAndPlay:
             // Clear queue and replace with new tracks
@@ -144,11 +138,11 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
     }
     
-    func addToQueue(_ track: Track) {
+    func addToQueue(_ track: PlayerMedia) {
         queue.append(QueueItem(track: track, hasBeenPlayed: false))
     }
     
-    func addToQueueNext(_ track: Track) {
+    func addToQueueNext(_ track: PlayerMedia) {
         if queue.isEmpty || currentQueueIndex == -1 {
             // If queue is empty, just add to queue and start playing
             queue.append(QueueItem(track: track, hasBeenPlayed: false))
@@ -158,7 +152,7 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
     }
     
-    func addToQueueNext(_ tracks: [Track]) {
+    func addToQueueNext(_ tracks: [PlayerMedia]) {
         if queue.isEmpty || currentQueueIndex == -1 {
             // If queue is empty, just add to queue
             queue.append(contentsOf: tracks.map { QueueItem(track: $0, hasBeenPlayed: false) })
@@ -169,15 +163,15 @@ class AudioPlayerService: NSObject, ObservableObject {
         }
     }
     
-    func addToQueueEnd(_ track: Track) {
+    func addToQueueEnd(_ track: PlayerMedia) {
         queue.append(QueueItem(track: track, hasBeenPlayed: false))
     }
     
-    func addToQueueEnd(_ tracks: [Track]) {
+    func addToQueueEnd(_ tracks: [PlayerMedia]) {
         queue.append(contentsOf: tracks.map { QueueItem(track: $0, hasBeenPlayed: false) })
     }
     
-    func playNow(_ track: Track) {
+    func playNow(_ track: PlayerMedia) {
         if queue.isEmpty || currentQueueIndex == -1 {
             // If queue is empty, create new queue with this track and play it
             queue = [QueueItem(track: track, hasBeenPlayed: false)]
@@ -241,7 +235,7 @@ class AudioPlayerService: NSObject, ObservableObject {
 
 struct QueueItem: Identifiable {
     let id = UUID()
-    let track: Track
+    let track: PlayerMedia
     var hasBeenPlayed: Bool
 }
 

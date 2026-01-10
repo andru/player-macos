@@ -3,10 +3,9 @@ import SwiftUI
 struct AlbumsView: View {
     @EnvironmentObject var container: AppContainer
     @EnvironmentObject var preferences: PreferencesService
-    @Binding var selectedAlbum: Album?
     
     @State private var displayMode: DisplayMode = .grid
-    @StateObject private var vm = AlbumsViewModel()
+    @StateObject var vm: LibraryViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -42,13 +41,13 @@ struct AlbumsView: View {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
                         
-                        ForEach(vm.albumRows) { album in
-                            
-                            AlbumGridItem(album: album, action: {
-                                selectedAlbum = await vm.fetchAlbumDetails(albumID: album.id)
-                                //                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
-                            }, audioPlayer: container.library.audioPlayer)
-                            
+                        ForEach(vm.albumRows) { albumRow in
+                            // Start an async Task from a synchronous closure so the action type stays () -> Void
+                            AlbumGridItem(albumRow: albumRow, action: {
+                                Task {
+                                    await vm.didClickAlbum(albumRow: albumRow)
+                                }
+                            })
                         }
                         
                     }
@@ -61,12 +60,10 @@ struct AlbumsView: View {
 //                    sortOrder: $vm.sortOrder
 //                )
 //            }
-        }.task {
-            // Runs when the view appears; guard to ensure one-time configure
-            vm.configureIfNeeded(deps: container.library)
-            await vm.loadInitialIfNeeded()
         }.onAppear {
             loadViewMode()
+        }.task {
+            await vm.loadAlbumRows()
         }
 //        .onChange(of: selectedView) { _ in
 //            loadViewMode()
@@ -93,18 +90,13 @@ struct AlbumsView: View {
 // MARK: - Grid Items
 
 struct AlbumGridItem: View {
-    let album: Album
+    let albumRow: AlbumRow
     let action: () -> Void
-    let audioPlayer: AudioPlayer?
-    
-    private var trackCount: Int {
-        album.releases.reduce(0) { $0 + $1.tracks.count }
-    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: action) {
-                if let artwork = album.artwork {
+                if let artwork = albumRow.artwork {
                     Image(nsImage: artwork)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -125,24 +117,19 @@ struct AlbumGridItem: View {
             }
             .buttonStyle(.plain)
             .contextMenu {
-                if let audioPlayer = audioPlayer {
-                    AlbumContextMenu(album: album, audioPlayer: audioPlayer)
-                }
+                // fixed incorrect identifier: pass albumRow
+                AlbumRowContextMenu(albumRow: albumRow)
             }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(album.title)
+                Text(albumRow.title)
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text(album.albumArtistName ?? album.artist?.name ?? "Unknown Artist")
+                Text(albumRow.primaryArtistName ?? "Unknown Artist")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                
-                Text("\(trackCount) songs")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
         }
     }

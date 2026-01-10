@@ -15,11 +15,13 @@ final class AppContainer: ObservableObject {
         let library: LibraryDependencies
     }
 
+    let repositories: Repositories;
     
     @Published private(set) var state: State = .idle
     
     var appLibrary: AppLibraryService = AppLibraryService()
     let db: AppDatabase
+    let musicImportService: MusicImportService;
     
     var audioPlayer: AudioPlayerService
     var appFrame: AppFrameDependencies
@@ -30,30 +32,45 @@ final class AppContainer: ObservableObject {
 //    let artists: ArtistsDependencies
 
     init() throws {
-        self.db = try AppDatabase(url: appLibrary.libraryDbURL!)
-
-        // Infrastructure implementations (GRDB-backed)
-        let trackRowQuery = GRDBTrackRowQuery(dbWriter: db.dbWriter)
-        let albumsQueries = GRDBAlbumRowQuery(dbWriter: db.dbWriter)
+        appLibrary.ensureAccess()
+        db = try AppDatabase(url: appLibrary.libraryDbURL!)
         
-        let 
+        // Infrastructure implementations (GRDB-backed)
+        let albumsQueries = GRDBAlbumRowQuery(dbWriter: db.dbWriter)
+        let songsQueries = GRDBSongsQueries(dbWriter: db.dbWriter)
+        
+        repositories = Repositories(
+            artist: GRDBArtistRepository(dbWriter: db.dbWriter),
+            collection: GRDBCollectionRepository(dbWriter: db.dbWriter),
+            digitalFile: GRDBDigitalFileRepository(dbWriter: db.dbWriter),
+            label: GRDBLabelRepository(dbWriter: db.dbWriter),
+            medium: GRDBMediumRepository(dbWriter: db.dbWriter),
+            recording: GRDBRecordingRepository(dbWriter: db.dbWriter),
+            releaseGroup: GRDBReleaseGroupRepository(dbWriter: db.dbWriter),
+            release: GRDBReleaseRepository(dbWriter: db.dbWriter),
+            track: GRDBTrackRepository(dbWriter: db.dbWriter),
+            work: GRDBWorkRepository(dbWriter: db.dbWriter)
+        )
+        
+        // pass repositories to services
+        musicImportService = MusicImportService(repositories: repositories)
 
         // Services
         let audioPlayer = AudioPlayerService()
         self.audioPlayer = audioPlayer
 
         // Bundle per feature
-        let appFrame = AppFrameDependencies(
+        appFrame = AppFrameDependencies(
             appLibraryService: appLibrary,
             audioPlayer: audioPlayer
         )
-        let player = PlayerDependencies(
+        player = PlayerDependencies(
             audioPlayer: audioPlayer
         )
-        let library = LibraryDependencies(
+        library = LibraryDependencies(
             audioPlayer: audioPlayer,
             albumsQueries: albumsQueries,
-            trackRowQuery: trackRowQuery
+            songsQueries: songsQueries
         )
         
         state = .ready(
@@ -63,11 +80,19 @@ final class AppContainer: ObservableObject {
                 library: library
             )
         )
-        
-        self.appFrame = appFrame
-        self.player = player
-        self.library = library
 
     }
 }
 
+struct Repositories {
+    let artist: ArtistRepository
+    let collection: CollectionRepository
+    let digitalFile: DigitalFileRepository
+    let label: LabelRepository
+    let medium: MediumRepository
+    let recording: RecordingRepository
+    let releaseGroup: ReleaseGroupRepository
+    let release: ReleaseRepository
+    let track: TrackRepository
+    let work: WorkRepository
+}

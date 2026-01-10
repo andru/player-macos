@@ -1,7 +1,7 @@
 import GRDB
 
 
-final class GRDBAlbumRowQuery: AlbumRowQuery {
+final class GRDBAlbumRowQuery: AlbumsQueries {
     
     let dbWriter: any DatabaseWriter
     
@@ -13,28 +13,20 @@ final class GRDBAlbumRowQuery: AlbumRowQuery {
         return try await dbWriter.read { db in
             // Find work by title with artist link
             var sql = """
-                SELECT 
-                    rg.id as id, 
-                    rg.primaryArtistId as primaryArtistId,
-                    rg.title as title,
-                    a.name as primaryArtistName
-                LEFT JOIN artists a ON rg.primaryAristId = a.id
+                SELECT
+                  r.id AS id,
+                  rg.primaryArtistId AS primaryArtistId,
+                  rg.title AS title,
+                  a.name AS primaryArtistName,
+                  COALESCE(tc.trackCount, 0) AS trackCount
+                FROM release r
+                LEFT JOIN release_group rg ON r.releaseGroupId = rg.id
+                LEFT JOIN artists a ON a.id = rg.primaryArtistId;
             """
             
             sql += " ORDER BY rg.title COLLATE NOCASE "
             sql += " LIMIT ? OFFSET ?"
           
-        
-//            let rows = try Row.fetchAll(db, sql: sql, arguments: [9999, 0])
-//
-//            return rows.map { row in
-//                AlbumRow(
-//                    id: row["id"],
-//                    title: row["title"],
-//                    primaryArtistId: row["primaryArtistId"],
-//                    primaryArtistName: row["primaryArtistName"]
-//                )
-//            }
             
             let albums = try AlbumRowRecord.fetchAll(db, sql: sql, arguments: [9999, 0])
             return albums.map { $0.toAlbumRow() }

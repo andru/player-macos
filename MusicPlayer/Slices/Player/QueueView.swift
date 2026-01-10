@@ -2,13 +2,9 @@ import SwiftUI
 
 struct QueueView: View {
     @EnvironmentObject var container: AppContainer
-    var audioPlayer: AudioPlayerService
-    
-    init () {
-        audioPlayer = container.player.audioPlayer
-    }
     
     var body: some View {
+        let audioPlayer = container.audioPlayer
         VStack(spacing: 0) {
             // Header
             HStack {
@@ -57,18 +53,19 @@ struct QueueView: View {
                                     isCurrentTrack: index == audioPlayer.currentQueueIndex,
                                     onTap: {
                                         audioPlayer.currentQueueIndex = index
-                                        audioPlayer.play(track: item.track)
+                                        try? audioPlayer.play(track: item.track)
+                                        
                                     }
                                 )
-                                .onDrag {
-                                    return NSItemProvider(object: String(index) as NSString)
-                                }
-                                .onDrop(of: [.text], delegate: QueueDropDelegate(
-                                    item: index,
-                                    items: audioPlayer.queue,
-                                    currentIndex: audioPlayer.currentQueueIndex,
-                                    audioPlayer: audioPlayer
-                                ))
+//                                .onDrag {
+//                                    return NSItemProvider(object: String(index) as NSString)
+//                                }
+//                                .onDrop(of: [.text], delegate: QueueDropDelegate(
+//                                    item: index,
+//                                    items: audioPlayer.queue,
+//                                    currentIndex: audioPlayer.currentQueueIndex,
+//                                    audioPlayer: audioPlayer
+//                                ))
                             }
                         }
                     }
@@ -109,8 +106,8 @@ struct QueueItemView: View {
                 }
                 
                 // Album artwork
-                if let artwork = item.track.artwork {
-                    Image(nsImage: artwork)
+                if let artwork = item.track.artworkData {
+                    Image(nsImage: NSImage(data: artwork) ?? NSImage())
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 40, height: 40)
@@ -134,7 +131,7 @@ struct QueueItemView: View {
                         .lineLimit(1)
                         .foregroundColor(item.hasBeenPlayed ? .secondary : .primary)
                     
-                    Text(item.track.artistName)
+                    Text(item.track.artist)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)

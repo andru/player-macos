@@ -32,21 +32,7 @@ struct ContentView: View {
                     
                     Divider()
                     
-                    if let album = selectedAlbum {
-                        AlbumDetailView(
-                            album: album,
-                            onBack: {
-                                selectedAlbum = nil
-                            }
-                        )
-                    } else {
-                        LibraryView(
-                            selectedView: $selectedView,
-                            selectedCollection: $selectedCollection,
-                            searchText: $searchText,
-                            selectedAlbum: $selectedAlbum
-                        ).environmentObject(preferences)
-                    }
+                    LibraryRootView()
                     
                     if showQueue {
                         Divider()
@@ -55,7 +41,7 @@ struct ContentView: View {
                     }
                 }
                 .frame(maxHeight: .infinity) // allow HStack to take remaining vertical space
-        }
+            }
 
         }
         .frame(minWidth: 900, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
@@ -64,8 +50,8 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView()
-        .environmentObject(AppContainer())
-        .environmentObject(PreferencesService())
-}
+//#Preview {
+//    ContentView()
+//        .environmentObject(AppContainer())
+//        .environmentObject(PreferencesService())
+//}

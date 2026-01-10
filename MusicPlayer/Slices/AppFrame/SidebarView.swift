@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @EnvironmentObject var library: AppLibraryService
+    @EnvironmentObject var container: AppContainer
     @Binding var selectedView: LibraryViewMode
     @Binding var selectedAlbum: Album?
     @Binding var selectedCollection: Collection?
+    @State private var collections: [Collection] = []
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -52,7 +53,7 @@ struct SidebarView: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)
                 
-                ForEach(library.collections) { collection in
+                ForEach(collections) { collection in
                     SidebarItemView(
                         title: collection.name,
                         icon: "music.note.list",
@@ -67,6 +68,13 @@ struct SidebarView: View {
         }
         .frame(minWidth: 200, maxWidth: 250)
         .background(Color(nsColor: .controlBackgroundColor))
+        .task {
+            do {
+                collections = try await container.repositories.collection.loadCollections()
+            } catch {
+                print("Error loading collections: \(error)")
+            }
+        }
     }
     
     private func iconForView(_ view: LibraryViewMode) -> String {
@@ -82,7 +90,7 @@ struct SidebarView: View {
     
     private func createNewCollection() {
         let newCollection = Collection(name: "New Collection")
-        library.addCollection(newCollection)
+//        library.addCollection(newCollection)
     }
 }
 

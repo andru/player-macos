@@ -2,20 +2,48 @@ import SwiftUI
 
 struct TrackContextMenu: View {
     @EnvironmentObject var container: AppContainer
-    let track: Track
+    let track: SongRow
+    
+    init(track: SongRow) {
+        self.track = track
+    }
     
     var body: some View {
         let audioPlayer = container.library.audioPlayer
         Button("Play Now") {
-            audioPlayer.playNow(track)
+            Task {
+                do {
+                    let fullTrack = try await container.repositories.track.loadTrack(id: track.id)
+                    guard let fullTrack = fullTrack, let playerMedia = fullTrack.toPlayerMedia() else { return }
+                    audioPlayer.playNow(playerMedia)
+                } catch {
+                    print("Failed to load track: \(error)")
+                }
+            }
         }
         
         Button("Next in Queue") {
-            audioPlayer.addToQueueNext(track)
+            Task {
+                do {
+                    let fullTrack = try await container.repositories.track.loadTrack(id: track.id)
+                    guard let fullTrack = fullTrack, let playerMedia = fullTrack.toPlayerMedia() else { return }
+                    audioPlayer.playNow(playerMedia)
+                } catch {
+                    print("Failed to load track: \(error)")
+                }
+            }
         }
         
         Button("End of Queue") {
-            audioPlayer.addToQueueEnd(track)
+            Task {
+                do {
+                    let fullTrack = try await container.repositories.track.loadTrack(id: track.id)
+                    guard let fullTrack = fullTrack, let playerMedia = fullTrack.toPlayerMedia() else { return }
+                    audioPlayer.playNow(playerMedia)
+                } catch {
+                    print("Failed to load track: \(error)")
+                }
+            }
         }
         
         Divider()

@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-class GRDBCollectionRepository: CollectionRepository {
+class GRDBDigitalFileRepository: DigitalFileRepository {
     var dbWriter: DatabaseWriter
     
     init(dbWriter: DatabaseWriter) {

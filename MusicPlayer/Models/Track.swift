@@ -58,5 +58,28 @@ struct Track: Identifiable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id, mediumId, recordingId, position, titleOverride, createdAt, updatedAt
     }
-}
+    
+    func toPlayerMedia() -> PlayerMedia? {
+        // Safely unwrap recording and its first digital file. Return nil if not available.
+        guard let recording = recording, recording.hasDigitalFiles,
+              let digitalFile = recording.digitalFiles.first else {
+            return nil
+        }
 
+        return PlayerMedia(
+            id: id,
+            title: title,
+            artist: recording.artists.first?.name ?? "Unknown Artist",
+            album: medium?.release?.releaseGroup?.title ?? "Unknown Album",
+            albumArtist: medium?.release?.releaseGroup?.primaryArtist?.name ?? "Unknown Artist",
+            duration: recording.duration ?? 0,
+            fileURL: digitalFile.fileURL,
+            artworkURL: nil,
+            artworkData: digitalFile.artworkData,
+            genre: "None",
+            year: medium?.release?.year,
+            trackNumber: position,
+            digitalFile: digitalFile
+        )
+    }
+}

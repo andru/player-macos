@@ -11,23 +11,8 @@ struct AlbumRowRecord: FetchableRecord, Decodable {
             id: id,
             title: title,
             primaryArtistId: primaryArtistId,
-            primaryArtistName: primaryArtistName
-        )
-    }
-}
-
-struct AlbumDetailsRecord: FetchableRecord, Decodable {
-    let id: Int64
-    let title: String
-    let primaryArtistId: Int64?
-    let primaryArtistName: String?
-    
-    func toAlbumDetails() -> AlbumDetails {
-        AlbumDetails(
-            id: id,
-            title: title,
-            primaryArtistId: primaryArtistId,
-            primaryArtistName: primaryArtistName
+            primaryArtistName: primaryArtistName,
+            artwork: nil
         )
     }
 }

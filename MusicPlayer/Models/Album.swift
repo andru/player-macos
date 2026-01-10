@@ -64,9 +64,21 @@ struct Album: Identifiable, Hashable {
         self.artistName = artistName ?? releaseGroup.primaryArtist?.name ?? "Unknown Artist"
     }
     
-    var trackCount: Int {
-        releases.reduce(0) { $0 + $1.trackCount }
+    var defaultRelease: Release? {
+        releases.first
     }
+    
+    var tracks: [Track] {
+        guard let defaultRelease = defaultRelease, let defaultMedia = defaultRelease.media.first else {
+            return []
+        }
+        return defaultMedia.tracks
+    }
+    
+    var trackCount: Int {
+        tracks.count
+    }
+    
     
     enum CodingKeys: String, CodingKey {
         case id, artistId, title, sortTitle, albumArtistName, composerName, isCompilation, createdAt, updatedAt

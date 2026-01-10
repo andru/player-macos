@@ -55,6 +55,12 @@ protocol RecordingRepository {
     
     /// Link a recording to a digital file
     func linkRecordingToDigitalFile(recordingId: Int64, digitalFileId: Int64) async throws
+    
+    /// Load recordings that have no digital files (physical-only)
+    func loadRecordingsWithoutDigitalFiles() async throws -> [Recording]
+    
+    /// Load recordings that have digital files
+    func loadRecordingsWithDigitalFiles() async throws -> [Recording]
 }
 
 /// Protocol defining label persistence operations
@@ -188,9 +194,4 @@ protocol DigitalFileRepository {
     /// Find a digital file by file URL
     func findDigitalFile(byFileURL fileURL: URL) async throws -> DigitalFile?
     
-    /// Load recordings that have no digital files (physical-only)
-    func loadRecordingsWithoutDigitalFiles() async throws -> [Recording]
-    
-    /// Load recordings that have digital files
-    func loadRecordingsWithDigitalFiles() async throws -> [Recording]
 }

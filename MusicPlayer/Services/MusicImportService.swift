@@ -4,10 +4,10 @@ import Foundation
 /// Service responsible for importing audio files into the music library
 /// Implements the MusicBrainz-aligned import pipeline
 class MusicImportService {
-    private let repository: GRDBRepository
-    
-    init(repository: GRDBRepository) {
-        self.repository = repository
+
+    let repos: Repositories;
+    init (repositories: Repositories) {
+        self.repos = repositories
     }
     
     /// Import an audio file following the MusicBrainz-aligned pipeline:
@@ -27,19 +27,19 @@ class MusicImportService {
         
         // 2. Upsert Artist(s)
         let primaryArtistName = metadata.albumArtistName ?? metadata.artistName
-        let artist = try await repository.upsertArtist(
+        let artist = try await repos.artist.upsertArtist(
             name: primaryArtistName,
             sortName: nil
         )
         
         // 3. Upsert Work (by title + primary artist heuristic)
-        let work = try await repository.upsertWork(
+        let work = try await repos.work.upsertWork(
             title: metadata.title,
             artistIds: [artist.id]
         )
         
         // 4. Upsert Recording
-        let recording = try await repository.upsertRecording(
+        let recording = try await repos.recording.upsertRecording(
             title: metadata.title,
             duration: metadata.duration,
             workIds: [work.id],
@@ -47,14 +47,14 @@ class MusicImportService {
         )
         
         // 5. Upsert ReleaseGroup (album concept)
-        let releaseGroup = try await repository.upsertReleaseGroup(
+        let releaseGroup = try await repos.releaseGroup.upsertReleaseGroup(
             title: metadata.albumName,
             primaryArtistId: metadata.isCompilation ? nil : artist.id,
             isCompilation: metadata.isCompilation
         )
         
         // 6. Upsert Release under the ReleaseGroup
-        let release = try await repository.upsertRelease(
+        let release = try await repos.release.upsertRelease(
             releaseGroupId: releaseGroup.id,
             format: .digital,
             edition: nil,
@@ -66,7 +66,7 @@ class MusicImportService {
         
         // 7. Create/Find Medium
         let discNumber = metadata.discNumber ?? 1
-        let medium = try await repository.upsertMedium(
+        let medium = try await repos.medium.upsertMedium(
             releaseId: release.id,
             position: discNumber,
             format: nil,
@@ -84,7 +84,7 @@ class MusicImportService {
             updatedAt: Date()
         )
         
-        let savedTrack = try await repository.saveTrack(track)
+        let savedTrack = try await repos.track.saveTrack(track)
         
         // 9. Create DigitalFile
         let digitalFile = DigitalFile(
@@ -99,10 +99,10 @@ class MusicImportService {
             artworkData: metadata.artworkData
         )
         
-        let savedDigitalFile = try await repository.saveDigitalFile(digitalFile)
+        let savedDigitalFile = try await repos.digitalFile.saveDigitalFile(digitalFile)
         
         // 10. Link Recording to DigitalFile (many-to-many)
-        try await repository.linkRecordingToDigitalFile(
+        try await repos.recording.linkRecordingToDigitalFile(
             recordingId: recording.id,
             digitalFileId: savedDigitalFile.id
         )
