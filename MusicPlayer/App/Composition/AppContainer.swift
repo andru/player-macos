@@ -67,11 +67,16 @@ final class AppContainer: ObservableObject {
                 releaseGroup: GRDBReleaseGroupRepository(dbWriter: db.dbWriter),
                 release: GRDBReleaseRepository(dbWriter: db.dbWriter),
                 track: GRDBTrackRepository(dbWriter: db.dbWriter),
-                work: GRDBWorkRepository(dbWriter: db.dbWriter)
+                work: GRDBWorkRepository(dbWriter: db.dbWriter),
+                localTrack: GRDBLocalTrackRepository(dbWriter: db.dbWriter),
+                localTrackTags: GRDBLocalTrackTagsRepository(dbWriter: db.dbWriter),
+                libraryTrack: GRDBLibraryTrackRepository(dbWriter: db.dbWriter),
+                trackMatch: GRDBTrackMatchRepository(dbWriter: db.dbWriter)
             )
             // Optimised Queries
             let albumsQueries = GRDBAlbumRowQuery(dbWriter: db.dbWriter)
             let songsQueries = GRDBSongsQueries(dbWriter: db.dbWriter)
+            let artistsQueries = GRDBArtistsQueries(dbWriter: db.dbWriter)
             
             // Init services
             let musicImportService = MusicImportService(fileAccess: fileAccess, bookmarkStore: bookmarkStore, appLibrary: appLibrary, repositories: repos)
@@ -89,7 +94,8 @@ final class AppContainer: ObservableObject {
                 audioPlayer: audioPlayer,
                 musicImportService: musicImportService,
                 albumsQueries: albumsQueries,
-                songsQueries: songsQueries
+                songsQueries: songsQueries,
+                artistsQueries: artistsQueries
             )
             
             let deps = FeatureDeps(
@@ -117,6 +123,12 @@ struct Repositories {
     let release: ReleaseRepository
     let track: TrackRepository
     let work: WorkRepository
+    
+    // Local tracks bridge repositories
+    let localTrack: LocalTrackRepository
+    let localTrackTags: LocalTrackTagsRepository
+    let libraryTrack: LibraryTrackRepository
+    let trackMatch: TrackMatchRepository
 }
 
 enum AppError: Error, Identifiable {

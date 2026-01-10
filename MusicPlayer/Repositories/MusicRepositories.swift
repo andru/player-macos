@@ -195,3 +195,82 @@ protocol DigitalFileRepository {
     func findDigitalFile(byFileURL fileURL: URL) async throws -> DigitalFile?
     
 }
+
+// MARK: - Local Tracks Bridge Repositories
+
+/// Protocol defining local track persistence operations
+protocol LocalTrackRepository {
+    /// Load all local tracks
+    func loadLocalTracks() async throws -> [LocalTrack]
+    
+    /// Load a specific local track by ID
+    func loadLocalTrack(id: Int64) async throws -> LocalTrack?
+    
+    /// Find a local track by content hash
+    func findLocalTrack(byContentHash hash: String) async throws -> LocalTrack?
+    
+    /// Save or update a local track
+    func saveLocalTrack(_ localTrack: LocalTrack) async throws -> LocalTrack
+    
+    /// Upsert a local track by content hash
+    func upsertLocalTrack(
+        contentHash: String,
+        fileURL: String,
+        bookmarkData: Data?,
+        fileSize: Int64?,
+        modifiedAt: Date?,
+        duration: TimeInterval?
+    ) async throws -> LocalTrack
+}
+
+/// Protocol defining local track tags persistence operations
+protocol LocalTrackTagsRepository {
+    /// Load all tags
+    func loadAllTags() async throws -> [LocalTrackTags]
+    
+    /// Load tags for a specific local track
+    func loadTags(forLocalTrackId localTrackId: Int64) async throws -> [LocalTrackTags]
+    
+    /// Load a specific tags record by ID
+    func loadTags(id: Int64) async throws -> LocalTrackTags?
+    
+    /// Save or update tags
+    func saveTags(_ tags: LocalTrackTags) async throws -> LocalTrackTags
+}
+
+/// Protocol defining library track persistence operations
+protocol LibraryTrackRepository {
+    /// Load all library tracks
+    func loadLibraryTracks() async throws -> [LibraryTrack]
+    
+    /// Load a specific library track by ID
+    func loadLibraryTrack(id: Int64) async throws -> LibraryTrack?
+    
+    /// Find a library track by local track ID
+    func findLibraryTrack(byLocalTrackId localTrackId: Int64) async throws -> LibraryTrack?
+    
+    /// Save or update a library track
+    func saveLibraryTrack(_ libraryTrack: LibraryTrack) async throws -> LibraryTrack
+    
+    /// Upsert a library track
+    func upsertLibraryTrack(
+        localTrackId: Int64,
+        localTrackTagsId: Int64
+    ) async throws -> LibraryTrack
+}
+
+/// Protocol defining track match persistence operations
+protocol TrackMatchRepository {
+    /// Load all track matches
+    func loadTrackMatches() async throws -> [TrackMatch]
+    
+    /// Load matches for a specific library track
+    func loadMatches(forLibraryTrackId libraryTrackId: Int64) async throws -> [TrackMatch]
+    
+    /// Load a specific track match by ID
+    func loadTrackMatch(id: Int64) async throws -> TrackMatch?
+    
+    /// Save or update a track match
+    func saveTrackMatch(_ trackMatch: TrackMatch) async throws -> TrackMatch
+}
+

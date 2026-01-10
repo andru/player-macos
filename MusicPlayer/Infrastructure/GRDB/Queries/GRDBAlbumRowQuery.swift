@@ -11,25 +11,48 @@ final class GRDBAlbumRowQuery: AlbumsQueries {
     
     func fetchAlbumRows() async throws -> [AlbumRow] {
         return try await dbWriter.read { db in
-            // Find work by title with artist link
-            var sql = """
+            // Group library tracks by album and albumArtist (or compilation)
+            let sql = """
                 SELECT
-                  r.id AS id,
-                  rg.primaryArtistId AS primaryArtistId,
-                  rg.title AS title,
-                  a.name AS primaryArtistName,
-                  COALESCE(tc.trackCount, 0) AS trackCount
-                FROM release r
-                LEFT JOIN release_group rg ON r.releaseGroupId = rg.id
-                LEFT JOIN artists a ON a.id = rg.primaryArtistId;
+                    COALESCE(tags.album, 'Unknown Album') AS albumTitle,
+                    CASE 
+                        WHEN tags.isCompilation = 1 THEN NULL
+                        ELSE tags.albumArtist
+                    END AS albumArtist,
+                    tags.isCompilation,
+                    COUNT(DISTINCT lt.id) AS trackCount
+                FROM library_track lt
+                JOIN local_track_tags tags ON tags.id = lt.localTrackTagsId
+                GROUP BY albumTitle, albumArtist, tags.isCompilation
+                ORDER BY albumTitle COLLATE NOCASE
             """
             
-            sql += " ORDER BY rg.title COLLATE NOCASE "
-            sql += " LIMIT ? OFFSET ?"
-          
+            struct AlbumRowSQL: Decodable, FetchableRecord {
+                let albumTitle: String
+                let albumArtist: String?
+                let isCompilation: Bool
+                let trackCount: Int
+            }
             
-            let albums = try AlbumRowRecord.fetchAll(db, sql: sql, arguments: [9999, 0])
-            return albums.map { $0.toAlbumRow() }
+            let rows = try AlbumRowSQL.fetchAll(db, sql: sql)
+            
+            return rows.map { row in
+                // Create a stable ID from album title + artist (or compilation marker)
+                let idString = if row.isCompilation {
+                    "compilation:\(row.albumTitle)"
+                } else {
+                    "\(row.albumTitle):\(row.albumArtist ?? "unknown")"
+                }
+                
+                return AlbumRow(
+                    id: idString,
+                    title: row.albumTitle,
+                    albumArtist: row.albumArtist,
+                    isCompilation: row.isCompilation,
+                    trackCount: row.trackCount,
+                    artwork: nil  // TODO: Load artwork from local_track if needed
+                )
+            }
         }
     }
 }

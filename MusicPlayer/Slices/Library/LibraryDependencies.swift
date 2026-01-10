@@ -3,4 +3,5 @@ struct LibraryDependencies {
     let musicImportService: MusicImportService
     let albumsQueries: AlbumsQueries
     let songsQueries: SongsQueries
+    let artistsQueries: ArtistsQueries
 }
