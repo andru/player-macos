@@ -126,10 +126,22 @@ struct AlbumGridItem: View {
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text(albumRow.primaryArtistName ?? "Unknown Artist")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                if let albumArtist = albumRow.albumArtist {
+                    Text(albumArtist)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                } else if albumRow.isCompilation {
+                    Text("Various Artists")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                } else {
+                    Text("Unknown Artist")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
             }
         }
     }
