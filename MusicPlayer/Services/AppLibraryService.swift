@@ -23,44 +23,55 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
     private let audioExtensions = ["mp3", "m4a", "flac", "wav", "aac", "aiff", "aif", "opus", "ogg", "wma"]
 
     // MARK: - Init
-    func ensureAccess() async throws -> URL {
+    init() {
         // Restore directory bookmarks for previously imported directories
         restoreDirectoryBookmarks()
+    }
+
+    func openLibrary() async throws -> AppLibraryContext{
         
         // Attempt to restore a persisted library location via a security-scoped bookmark
-        initializationTask = Task { @MainActor in
-            if await restoreLibraryFromBookmark() {
+        do {
+            if let url = try await restoreLibraryFromBookmark() {
                 // Successfully restored and loaded
-                return
+                self.libraryURL = url
+                return AppLibraryContext(libraryURL: url, needsSetup: false)
             }
-
-            // Try default ~/Music/MusicPlayer.library
-            if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
-                let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
-
-                do {
-                    // Ensure the bundle directory exists (create if needed)
-                    if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
-                        try createLibraryBundle(at: libraryBundleURL)
-                    }
-
-                    // Start access and load library contents
-                    try await startAccessingAndLoad(at: libraryBundleURL)
-
-                    // Persist a security-scoped bookmark for next launch
-                    persistBookmark(for: libraryBundleURL)
-                } catch {
-                    print("LibraryManager: couldn't setup default library: \(error)")
-                    // Signal that we need user to select a location
-                    self.needsLibraryLocationSetup = true
-                }
-            } else {
-                // Couldn't determine Music directory; ask the user to pick a location
-                self.needsLibraryLocationSetup = true
-            }
+        } catch {
+            print("failed to restore bookmark; proceed to intial library setup: \(error)")
         }
         
-        return libraryURL!
+        // Try default ~/Music/MusicPlayer.library
+        if let musicURL = FileManager.default.urls(for: .musicDirectory, in: .userDomainMask).first {
+            let libraryBundleURL = musicURL.appendingPathComponent("MusicPlayer.library", isDirectory: true)
+
+            do {
+                // Ensure the bundle directory exists (create if needed)
+                if !FileManager.default.fileExists(atPath: libraryBundleURL.path) {
+                    try createLibraryBundle(at: libraryBundleURL)
+                }
+
+                // Start access and load library contents
+                try await startAccessingAndLoad(at: libraryBundleURL)
+
+                // Persist a security-scoped bookmark for next launch
+                persistBookmark(for: libraryBundleURL)
+            } catch {
+                self.needsLibraryLocationSetup = true
+                throw AppLibraryError.openFailed(underlying: error)
+                // Signal that we need user to select a location
+                
+            }
+        } else {
+            // Couldn't determine Music directory; ask the user to pick a location
+            self.needsLibraryLocationSetup = true
+        }
+        
+        guard let libraryURL = self.libraryURL else {
+            // Still no library URL; signal setup needed
+            throw AppLibraryError.missingLibraryURL
+        }
+        return AppLibraryContext(libraryURL: libraryURL, needsSetup: self.needsLibraryLocationSetup)
     }
 
     /// Called by UI when user selects a folder to host the library.
@@ -151,8 +162,8 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
         }
     }
 
-    private func restoreLibraryFromBookmark() async -> Bool {
-        guard let bookmarkData = UserDefaults.standard.data(forKey: bookmarkKey) else { return false }
+    private func restoreLibraryFromBookmark() async throws -> URL? {
+        guard let bookmarkData = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
         var isStale = false
         do {
             let url = try URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &isStale)
@@ -161,10 +172,9 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
             }
 
             try await startAccessingAndLoad(at: url)
-            return true
+            return url
         } catch {
-            print("LibraryManager: failed to resolve bookmark: \(error)")
-            return false
+            throw AppLibraryError.bookmarkInvalid
         }
     }
 
@@ -296,4 +306,19 @@ final class AppLibraryService: ObservableObject, AppLibraryServiceProtocol {
 //        stopAccessingDirectories()
     }
 
+}
+
+struct AppLibraryContext {
+    let libraryURL: URL
+    let needsSetup: Bool
+    
+    var libraryDbURL: URL {
+        libraryURL.appendingPathComponent("Contents/Resources/library.db")
+    }
+}
+
+enum AppLibraryError: Error {
+    case missingLibraryURL
+    case bookmarkInvalid
+    case openFailed(underlying: Error)
 }

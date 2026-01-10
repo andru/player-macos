@@ -11,32 +11,32 @@ struct TopBarView: View {
         HStack(spacing: 16) {
             // Playback controls
             HStack(spacing: 12) {
-                Button(action: { container.appFrame.audioPlayer.playPrevious() }) {
+                Button(action: { container.featureDeps.appFrame.audioPlayer.playPrevious() }) {
                     Image(systemName: "backward.fill")
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
-                .disabled(container.appFrame.audioPlayer.currentQueueIndex <= 0)
+                .disabled(container.featureDeps.appFrame.audioPlayer.currentQueueIndex <= 0)
                 
                 Button(action: togglePlayPause) {
-                    Image(systemName: container.appFrame.audioPlayer.playerState.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                    Image(systemName: container.featureDeps.appFrame.audioPlayer.playerState.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                         .font(.title)
                 }
                 .buttonStyle(.plain)
-                .disabled(container.appFrame.audioPlayer.playerState.currentTrack == nil)
+                .disabled(container.featureDeps.appFrame.audioPlayer.playerState.currentTrack == nil)
                 
-                Button(action: { container.appFrame.audioPlayer.playNext() }) {
+                Button(action: { container.featureDeps.appFrame.audioPlayer.playNext() }) {
                     Image(systemName: "forward.fill")
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
-                .disabled(container.appFrame.audioPlayer.currentQueueIndex >= container.appFrame.audioPlayer.queue.count - 1)
+                .disabled(container.featureDeps.appFrame.audioPlayer.currentQueueIndex >= container.featureDeps.appFrame.audioPlayer.queue.count - 1)
             }
             .frame(width: 120)
             
             // Current track info
-            NowPlayingWidget(playerState: container.appFrame.audioPlayer.playerState, onSeek: { time in
-                container.appFrame.audioPlayer.seek(to: time)
+            NowPlayingWidget(playerState: container.featureDeps.appFrame.audioPlayer.playerState, onSeek: { time in
+                container.featureDeps.appFrame.audioPlayer.seek(to: time)
             })
             
             Spacer()
@@ -75,10 +75,10 @@ struct TopBarView: View {
     }
     
     private func togglePlayPause() {
-        if container.appFrame.audioPlayer.playerState.isPlaying {
-            container.appFrame.audioPlayer.pause()
+        if container.featureDeps.appFrame.audioPlayer.playerState.isPlaying {
+            container.featureDeps.appFrame.audioPlayer.pause()
         } else {
-            container.appFrame.audioPlayer.resume()
+            container.featureDeps.appFrame.audioPlayer.resume()
         }
     }
 }

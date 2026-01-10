@@ -6,6 +6,5 @@ protocol AppLibraryServiceProtocol: ObservableObject {
     var libraryDbURL: URL? { get }
     var needsLibraryLocationSetup: Bool { get set }
     
-    func ensureAccess() async throws -> URL
     func setLibraryLocation(url: URL) async throws -> Void
 }

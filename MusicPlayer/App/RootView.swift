@@ -6,15 +6,9 @@ struct RootView: View {
     var body: some View {
         HStack {
             switch container.state {
-                
+            case .booting:
+                ProgressView("Booting up…")
             case .idle:
-                //                OpenLibraryView(
-                //                    onOpen: {
-                //                        Task {
-                //                            await container.openLibrary()
-                //                        }
-                //                    }
-                //                )
                 ProgressView("Loading…")
             case .opening:
                 ProgressView("Opening library…")
@@ -22,13 +16,21 @@ struct RootView: View {
             case .ready(let deps):
                 ContentView()
                     
-                
+            case .failed(let error):
+                LibraryErrorView(
+                    error: error
+//                    , onRetry: {
+//                        Task {
+//                            await ...
+//                        }
+//                    }
+                )
             case .error(let error):
                 LibraryErrorView(
                     error: error
 //                    , onRetry: {
 //                        Task {
-//                            await container.openLibrary()
+//                            await ...
 //                        }
 //                    }
                 )

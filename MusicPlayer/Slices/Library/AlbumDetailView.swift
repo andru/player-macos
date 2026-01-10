@@ -28,7 +28,7 @@ struct AlbumDetailView: View {
     }
     
     var body: some View {
-        let audioPlayer = container.audioPlayer
+        let audioPlayer = container.featureDeps.library.audioPlayer
         VStack(spacing: 0) {
             // Top section with album info
             HStack(alignment: .top, spacing: 24) {

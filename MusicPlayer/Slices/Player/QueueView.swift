@@ -4,7 +4,7 @@ struct QueueView: View {
     @EnvironmentObject var container: AppContainer
     
     var body: some View {
-        let audioPlayer = container.audioPlayer
+        let audioPlayer = container.featureDeps.player.audioPlayer
         VStack(spacing: 0) {
             // Header
             HStack {

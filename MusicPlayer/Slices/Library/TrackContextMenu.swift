@@ -9,7 +9,7 @@ struct TrackContextMenu: View {
     }
     
     var body: some View {
-        let audioPlayer = container.library.audioPlayer
+        let audioPlayer = container.featureDeps.library.audioPlayer
         Button("Play Now") {
             Task {
                 do {

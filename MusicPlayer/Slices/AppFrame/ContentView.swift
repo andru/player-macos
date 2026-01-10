@@ -46,7 +46,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 900, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         // The LibraryLocationPicker component presents the alert and open panel when needed
-        LibraryLocationPicker(library: container.appFrame.appLibraryService)
+        LibraryLocationPicker(library: container.featureDeps.appFrame.appLibraryService)
     }
 }
 
