@@ -16,6 +16,9 @@ struct ArtistsView: View {
                 }
             }.padding()
         }
+        .task {
+            await vm.loadArtistRows()
+        }
     }
 }
 

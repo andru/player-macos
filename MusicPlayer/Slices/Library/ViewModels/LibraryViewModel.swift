@@ -33,6 +33,14 @@ class LibraryViewModel: ObservableObject {
         }
     }
     
+    func loadArtistRows() async {
+        do {
+            artistRows = try await deps.artistsQueries.fetchArtistRows()
+        } catch {
+            artistRows = []
+        }
+    }
+    
     func loadSongRows() async {
 //        do {
 //            songRows = try await deps.songsQueries.fetchSongRows()
