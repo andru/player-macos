@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct ArtistsView: View {
-    var filteredArtists: [Artist]
+    let vm: LibraryViewModel
     
     var body: some View {
         ScrollView {
             VStack {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
-                    ForEach(filteredArtists) { artist in
-                        ArtistGridItem(artist: artist) {
+                    ForEach(vm.artistRows) { artistRow in
+                        ArtistGridItem(artistRow: artistRow) {
                             //                        let allTracks = artist.albums.flatMap { $0.tracks }
                             //                        audioPlayer.queueTracks(allTracks, startPlaying: true, behavior: preferences.playbackBehavior)
                         }
@@ -21,7 +21,7 @@ struct ArtistsView: View {
 
 
 struct ArtistGridItem: View {
-    let artist: Artist
+    let artistRow: ArtistRow
     let action: () -> Void
     
     var body: some View {
@@ -38,16 +38,16 @@ struct ArtistGridItem: View {
             }
             .buttonStyle(.plain)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text(artist.name)
-                    .font(.headline)
-                    .lineLimit(1)
-                
-                Text("\(artist.albums.count) albums • \(artist.trackCount) songs")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
+//            VStack(alignment: .leading, spacing: 2) {
+//                Text(artist.name)
+//                    .font(.headline)
+//                    .lineLimit(1)
+//                
+//                Text("\(artist.albums.count) albums • \(artist.trackCount) songs")
+//                    .font(.caption)
+//                    .foregroundColor(.secondary)
+//                    .lineLimit(1)
+//            }
         }
     }
 }

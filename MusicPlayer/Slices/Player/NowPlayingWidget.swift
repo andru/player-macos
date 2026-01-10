@@ -8,8 +8,8 @@ struct NowPlayingWidget: View {
         if let track = playerState.currentTrack {
             HStack(spacing: 12) {
                 // Album artwork placeholder
-                if let artwork = track.artwork {
-                    Image(nsImage: artwork)
+                if let artwork = track.artworkData {
+                    Image(nsImage: NSImage(data: artwork) ?? NSImage())
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 50, height: 50)
@@ -26,11 +26,11 @@ struct NowPlayingWidget: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(track.title)
+                    Text("Untitled") //track.title)
                         .font(.headline)
                         .lineLimit(1)
                     
-                    Text("\(track.artistName) • \(track.release?.album?.title ?? "Unknown Album")")
+                    Text("\(track.artist) • \(track.album)")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .lineLimit(1)

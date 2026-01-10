@@ -2,71 +2,93 @@ import Foundation
 @preconcurrency import AVFoundation
 
 /// Service responsible for importing audio files into the music library
-/// Implements the import pipeline with upsert logic for Artists, Albums, Releases, and Tracks
+/// Implements the MusicBrainz-aligned import pipeline
 class MusicImportService {
-    private let repository: GRDBRepository
-    
-    init(repository: GRDBRepository) {
-        self.repository = repository
+
+    let repos: Repositories;
+    init (repositories: Repositories) {
+        self.repos = repositories
     }
     
-    /// Import an audio file and create all necessary entities
-    /// Returns the created Track with its associated DigitalFile
+    /// Import an audio file following the MusicBrainz-aligned pipeline:
+    /// 1. Extract metadata
+    /// 2. Upsert Artist(s)
+    /// 3. Upsert Work
+    /// 4. Upsert Recording
+    /// 5. Upsert ReleaseGroup
+    /// 6. Upsert Release
+    /// 7. Create/Find Medium
+    /// 8. Create Track
+    /// 9. Create DigitalFile
+    /// 10. Link Recording to DigitalFile
     func importAudioFile(url: URL) async throws -> Track {
-        // Extract metadata from the audio file
+        // 1. Extract metadata from the audio file
         let metadata = try await extractMetadata(from: url)
         
-        // Upsert Artist
-        let artist = try await repository.upsertArtist(
-            name: metadata.albumArtistName ?? metadata.artistName,
+        // 2. Upsert Artist(s)
+        let primaryArtistName = metadata.albumArtistName ?? metadata.artistName
+        let artist = try await repos.artist.upsertArtist(
+            name: primaryArtistName,
             sortName: nil
         )
         
-        // Upsert Album
-        let album = try await repository.upsertAlbum(
-            artistId: artist.id,
+        // 3. Upsert Work (by title + primary artist heuristic)
+        let work = try await repos.work.upsertWork(
+            title: metadata.title,
+            artistIds: [artist.id]
+        )
+        
+        // 4. Upsert Recording
+        let recording = try await repos.recording.upsertRecording(
+            title: metadata.title,
+            duration: metadata.duration,
+            workIds: [work.id],
+            artistIds: [artist.id]
+        )
+        
+        // 5. Upsert ReleaseGroup (album concept)
+        let releaseGroup = try await repos.releaseGroup.upsertReleaseGroup(
             title: metadata.albumName,
-            albumArtistName: metadata.albumArtistName,
-            composerName: metadata.composerName,
+            primaryArtistId: metadata.isCompilation ? nil : artist.id,
             isCompilation: metadata.isCompilation
         )
         
-        // Upsert Release (default to Digital format with minimal metadata)
-        let release = try await repository.upsertRelease(
-            albumId: album.id,
+        // 6. Upsert Release under the ReleaseGroup
+        let release = try await repos.release.upsertRelease(
+            releaseGroupId: releaseGroup.id,
             format: .digital,
             edition: nil,
-            label: nil,
             year: metadata.year,
             country: nil,
             catalogNumber: nil,
-            barcode: nil,
-            discs: 1,
-            isCompilation: metadata.isCompilation
+            barcode: nil
         )
         
-        // Create Track
+        // 7. Create/Find Medium
+        let discNumber = metadata.discNumber ?? 1
+        let medium = try await repos.medium.upsertMedium(
+            releaseId: release.id,
+            position: discNumber,
+            format: nil,
+            title: nil
+        )
+        
+        // 8. Create Track (pointing to Recording)
         let track = Track(
             id: 0,
-            releaseId: release.id,
-            discNumber: metadata.discNumber ?? 1,
-            trackNumber: metadata.trackNumber,
-            title: metadata.title,
-            duration: metadata.duration,
-            artistName: metadata.artistName,
-            albumArtistName: metadata.albumArtistName,
-            composerName: metadata.composerName,
-            genre: metadata.genre,
+            mediumId: medium.id,
+            recordingId: recording.id,
+            position: metadata.trackNumber ?? 1,
+            titleOverride: nil,
             createdAt: Date(),
             updatedAt: Date()
         )
         
-        let savedTrack = try await repository.saveTrack(track)
+        let savedTrack = try await repos.track.saveTrack(track)
         
-        // Create DigitalFile
+        // 9. Create DigitalFile
         let digitalFile = DigitalFile(
             id: 0,
-            trackId: savedTrack.id,
             fileURL: url,
             bookmarkData: nil,
             fileHash: nil,
@@ -77,13 +99,15 @@ class MusicImportService {
             artworkData: metadata.artworkData
         )
         
-        let savedDigitalFile = try await repository.saveDigitalFile(digitalFile)
+        let savedDigitalFile = try await repos.digitalFile.saveDigitalFile(digitalFile)
         
-        // Return track with digital file attached
-        var trackWithFile = savedTrack
-        trackWithFile.digitalFiles = [savedDigitalFile]
+        // 10. Link Recording to DigitalFile (many-to-many)
+        try await repos.recording.linkRecordingToDigitalFile(
+            recordingId: recording.id,
+            digitalFileId: savedDigitalFile.id
+        )
         
-        return trackWithFile
+        return savedTrack
     }
     
     /// Import multiple audio files
@@ -96,7 +120,6 @@ class MusicImportService {
                 importedTracks.append(track)
             } catch {
                 print("Failed to import \(url.lastPathComponent): \(error)")
-                // Continue with other files
             }
         }
         
@@ -108,7 +131,6 @@ class MusicImportService {
     private func extractMetadata(from url: URL) async throws -> AudioMetadata {
         let asset = AVAsset(url: url)
         
-        // Load duration
         var duration: TimeInterval? = nil
         if let cmTime: CMTime = try? await asset.load(.duration) {
             let seconds = CMTimeGetSeconds(cmTime)
@@ -117,7 +139,6 @@ class MusicImportService {
             }
         }
         
-        // Load metadata
         var title = url.deletingPathExtension().lastPathComponent
         var artistName = "Unknown Artist"
         var albumName = "Unknown Album"
@@ -130,7 +151,6 @@ class MusicImportService {
         var artworkData: Data? = nil
         var isCompilation = false
         
-        // Load common metadata
         if let commonMetadata: [AVMetadataItem] = try? await asset.load(.commonMetadata) {
             for item in commonMetadata {
                 let key = item.commonKey?.rawValue
@@ -159,14 +179,12 @@ class MusicImportService {
                     break
                 }
                 
-                // Extract artwork
                 if key == "artwork", let data = try? await item.load(.value) as? Data {
                     artworkData = data
                 }
             }
         }
         
-        // Load format-specific metadata
         if let formats: [AVMetadataFormat] = try? await asset.load(.availableMetadataFormats) {
             for format in formats {
                 if let fmtItems = try? await asset.loadMetadata(for: format) {
@@ -181,7 +199,6 @@ class MusicImportService {
                     for item in fmtItems {
                         let valueString = await extractStringValue(from: item)
                         
-                        // Try to extract year
                         if year == nil {
                             if let key = item.commonKey?.rawValue, key == "creationDate" || key == "year" {
                                 year = extractYear(from: valueString)
@@ -190,7 +207,6 @@ class MusicImportService {
                             }
                         }
                         
-                        // Try to extract track number
                         if trackNumber == nil {
                             if let key = item.commonKey?.rawValue, key == "trackNumber" {
                                 trackNumber = valueString.flatMap { Int($0) }
@@ -199,14 +215,12 @@ class MusicImportService {
                             }
                         }
                         
-                        // Try to extract disc number
                         if discNumber == nil {
                             if let key = item.key as? String, key.uppercased() == "TPOS" || key == "©disc" {
                                 discNumber = extractDiscNumber(from: valueString)
                             }
                         }
                         
-                        // Try to extract genre
                         if genre == nil {
                             if let key = item.commonKey?.rawValue, key == "type" {
                                 if let value = valueString, !value.isEmpty && value.lowercased() != "compilation" {
@@ -249,26 +263,22 @@ class MusicImportService {
     
     private func extractAlbumArtist(from metadataItems: [AVMetadataItem]) async -> String? {
         for item in metadataItems {
-            // Prefer commonKey if present
             if let ck = item.commonKey?.rawValue, ck == "albumArtist", let v = await extractStringValue(from: item) {
                 return v
             }
             
-            // ID3v2: Album artist frame is "TPE2"
             if item.keySpace == .id3 {
                 if let key = item.key as? String, key == "TPE2", let v = await extractStringValue(from: item) {
                     return v
                 }
             }
             
-            // MP4 / iTunes metadata: album artist key is "aART"
             if item.keySpace == .iTunes {
                 if let key = item.key as? String, key == "aART", let v = await extractStringValue(from: item) {
                     return v
                 }
             }
             
-            // Some files may expose album artist via the item's identifier
             if let id = item.identifier?.rawValue.lowercased(), id.contains("albumartist") || id.contains("aart"), let v = await extractStringValue(from: item) {
                 return v
             }
@@ -283,14 +293,12 @@ class MusicImportService {
                 return v
             }
             
-            // ID3v2: Composer frame is "TCOM"
             if item.keySpace == .id3 {
                 if let key = item.key as? String, key == "TCOM", let v = await extractStringValue(from: item) {
                     return v
                 }
             }
             
-            // MP4 / iTunes metadata: composer key is "©wrt"
             if item.keySpace == .iTunes {
                 if let key = item.key as? String, key == "©wrt", let v = await extractStringValue(from: item) {
                     return v
@@ -304,12 +312,10 @@ class MusicImportService {
     private func extractYear(from string: String?) -> Int? {
         guard let string = string else { return nil }
         
-        // Try direct conversion
         if let year = Int(string) {
             return year
         }
         
-        // Try to extract year from date string (e.g., "2023-01-15")
         let yearPattern = #/(\d{4})/#
         if let match = try? yearPattern.firstMatch(in: string) {
             return Int(match.1)
@@ -321,7 +327,6 @@ class MusicImportService {
     private func extractTrackNumber(from string: String?) -> Int? {
         guard let string = string else { return nil }
         
-        // Handle "5/12" format (track 5 of 12)
         if let slashIndex = string.firstIndex(of: "/") {
             let trackPart = String(string[..<slashIndex])
             return Int(trackPart)
@@ -333,7 +338,6 @@ class MusicImportService {
     private func extractDiscNumber(from string: String?) -> Int? {
         guard let string = string else { return nil }
         
-        // Handle "2/3" format (disc 2 of 3)
         if let slashIndex = string.firstIndex(of: "/") {
             let discPart = String(string[..<slashIndex])
             return Int(discPart)

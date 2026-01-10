@@ -10,7 +10,8 @@ struct Artist: Identifiable, Hashable {
     var updatedAt: Date
     
     // Transient properties (not persisted, loaded via relationships)
-    var albums: [Album]
+    var albums: [ReleaseGroup]
+    var works: [Work]
     
     init(
         id: Int64,
@@ -18,7 +19,8 @@ struct Artist: Identifiable, Hashable {
         sortName: String? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
-        albums: [Album] = []
+        albums: [ReleaseGroup] = [],
+        works: [Work] = []
     ) {
         self.id = id
         self.name = name
@@ -26,6 +28,7 @@ struct Artist: Identifiable, Hashable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.albums = albums
+        self.works = works
     }
     
     var trackCount: Int {

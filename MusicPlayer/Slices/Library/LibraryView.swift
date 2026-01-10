@@ -1,18 +1,15 @@
 import SwiftUI
 
 struct LibraryView: View {
-    @EnvironmentObject var library: LibraryService
+    @EnvironmentObject var container: AppContainer
     @EnvironmentObject var preferences: PreferencesService
-    var audioPlayer: AudioPlayer
-    @Binding var selectedView: LibraryViewMode
-    @Binding var selectedCollection: Collection?
-    @Binding var searchText: String
-    @Binding var selectedAlbum: Album?
-    @State private var displayMode: DisplayMode = .grid
     
+    let vm: LibraryViewModel
+
     // Make `body` available for the deployment target (macOS 13+). If any
     // APIs used inside require macOS 14+, guard with `if #available` there.
     var body: some View {
+    
         VStack(spacing: 0) {
             // Toolbar
             HStack {
@@ -30,13 +27,23 @@ struct LibraryView: View {
             Divider()
             
             // Content
-            Group {
-                if selectedView == .albums || selectedCollection != nil {
-                    AlbumsView(selectedAlbum: $selectedAlbum, filteredAlbums: filteredAlbums, audioPlayer: audioPlayer)
-                } else if selectedView == .artists {
-                    ArtistsView(filteredArtists: filteredArtists)
+            HStack {
+                if let album = vm.selectedAlbum {
+                    AlbumDetailView(
+                        vm: vm,
+                        album: album,
+                        onBack: {
+                            vm.selectedAlbum = nil
+                        }
+                    )
                 } else {
-                    SongsView(filteredTracks: filteredTracks, audioPlayer: audioPlayer)
+                    if vm.selectedView == .albums || vm.selectedCollection != nil {
+                        AlbumsView(vm: vm)
+                    } else if vm.selectedView == .artists {
+                        ArtistsView(vm: vm)
+                    } else {
+                        SongsView(vm: vm)
+                    }
                 }
             }
             .frame(maxHeight: .infinity)
@@ -45,13 +52,15 @@ struct LibraryView: View {
     
     }
     
+    
     private var viewTitle: String {
-        if let collection = selectedCollection {
-            return collection.name
-        }
-        return selectedView.rawValue
+        return "Library"
+//        if let collection = selectedCollection {
+//            return collection.name
+//        }
+//        return selectedView.rawValue
     }
-
+/*
     private var filteredTracks: [Track] {
         var tracks = library.tracks
         
@@ -97,7 +106,7 @@ struct LibraryView: View {
         
         return artists
     }
-    
+    */
     
     private func importMusicFiles() async {
         let panel = NSOpenPanel()
@@ -106,7 +115,7 @@ struct LibraryView: View {
         panel.allowedContentTypes = [.audio]
         
         if panel.runModal() == .OK {
-            await library.importFiles(urls: panel.urls)
+//            await library.importFiles(urls: panel.urls)
         }
     }
     
@@ -120,7 +129,7 @@ struct LibraryView: View {
         panel.prompt = "Import"
         
         if panel.runModal() == .OK, let url = panel.url {
-            await library.importDirectory(url: url)
+//            await library.importDirectory(url: url)
         }
     }
 }

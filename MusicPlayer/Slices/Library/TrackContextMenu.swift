@@ -1,27 +1,55 @@
 import SwiftUI
 
 struct TrackContextMenu: View {
-    let track: Track
-    let audioPlayer: AudioPlayer
-    let library: LibraryService?
+    @EnvironmentObject var container: AppContainer
+    let track: SongRow
+    
+    init(track: SongRow) {
+        self.track = track
+    }
     
     var body: some View {
+        let audioPlayer = container.featureDeps.library.audioPlayer
         Button("Play Now") {
-            audioPlayer.playNow(track)
+            Task {
+                do {
+                    let fullTrack = try await container.repositories.track.loadTrack(id: track.id)
+                    guard let fullTrack = fullTrack, let playerMedia = fullTrack.toPlayerMedia() else { return }
+                    audioPlayer.playNow(playerMedia)
+                } catch {
+                    print("Failed to load track: \(error)")
+                }
+            }
         }
         
         Button("Next in Queue") {
-            audioPlayer.addToQueueNext(track)
+            Task {
+                do {
+                    let fullTrack = try await container.repositories.track.loadTrack(id: track.id)
+                    guard let fullTrack = fullTrack, let playerMedia = fullTrack.toPlayerMedia() else { return }
+                    audioPlayer.playNow(playerMedia)
+                } catch {
+                    print("Failed to load track: \(error)")
+                }
+            }
         }
         
         Button("End of Queue") {
-            audioPlayer.addToQueueEnd(track)
+            Task {
+                do {
+                    let fullTrack = try await container.repositories.track.loadTrack(id: track.id)
+                    guard let fullTrack = fullTrack, let playerMedia = fullTrack.toPlayerMedia() else { return }
+                    audioPlayer.playNow(playerMedia)
+                } catch {
+                    print("Failed to load track: \(error)")
+                }
+            }
         }
         
         Divider()
         
         Button("Favourite") {
-            library?.toggleFavorite(track: track)
+//            library?.toggleFavorite(track: track)
         }
         
         Button("Add to Collection") {
@@ -37,15 +65,15 @@ struct TrackContextMenu: View {
         Divider()
         
         Button("Remove from Library") {
-            library?.removeFromLibrary(track: track)
+//            library?.removeFromLibrary(track: track)
         }
         
         Button("Refresh from Source") {
-            library?.refreshFromSource(track: track)
+//            library?.refreshFromSource(track: track)
         }
         
         Button("Edit Info") {
-            library?.editInfo(track: track)
+//            library?.editInfo(track: track)
         }
     }
 }

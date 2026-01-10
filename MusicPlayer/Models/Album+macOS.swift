@@ -8,11 +8,11 @@ extension Album {
     var artwork: NSImage? {
         // Get artwork from first track's first digital file
         for release in releases {
-            for track in release.tracks {
-                if let artworkData = track.digitalFiles.first?.artworkData {
-                    return NSImage(data: artworkData)
-                }
-            }
+//            for track in release.tracks {
+//                if let artworkData = track.digitalFiles.first?.artworkData {
+//                    return NSImage(data: artworkData)
+//                }
+//            }
         }
         return nil
     }

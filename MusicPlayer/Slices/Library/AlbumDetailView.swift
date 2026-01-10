@@ -1,28 +1,17 @@
 import SwiftUI
 
 struct AlbumDetailView: View {
-    let album: Album
-    var audioPlayer: AudioPlayer  // Not @ObservedObject - we don't need to observe it
-    let onBack: () -> Void
+    @EnvironmentObject var container: AppContainer
     
     @State private var selectedTrackIDs: Set<Int64> = []
     @State private var lastSelectedTrackID: Int64?
-    
-    // Get all tracks from all releases, sorted by disc and track number
-    private var sortedTracks: [Track] {
-        let allTracks = album.releases.flatMap { $0.tracks }
-        return allTracks.sorted { (t1, t2) in
-            if t1.discNumber != t2.discNumber {
-                return t1.discNumber < t2.discNumber
-            }
-            let n1 = t1.trackNumber ?? Int.max
-            let n2 = t2.trackNumber ?? Int.max
-            return n1 < n2
-        }
-    }
+
+    let vm: LibraryViewModel
+    let album: Album
+    let onBack: () -> Void
     
     private var totalDuration: String {
-        let total = sortedTracks.reduce(0.0) { $0 + ($1.duration ?? 0) }
+        let total = album.tracks.reduce(0.0) { $0 + ($1.duration ?? 0) }
         let hours = Int(total) / 3600
         let minutes = (Int(total) % 3600) / 60
         
@@ -39,6 +28,7 @@ struct AlbumDetailView: View {
     }
     
     var body: some View {
+        let audioPlayer = container.featureDeps.library.audioPlayer
         VStack(spacing: 0) {
             // Top section with album info
             HStack(alignment: .top, spacing: 24) {
@@ -64,7 +54,9 @@ struct AlbumDetailView: View {
                     
                     // Play button overlay
                     Button(action: {
-                        audioPlayer.queueTracks(sortedTracks, startPlaying: true)
+                        Task {
+                            await vm.playTracks(tracks: album.tracks)
+                        }
                     }) {
                         Circle()
                             .fill(Color.accentColor)
@@ -96,17 +88,17 @@ struct AlbumDetailView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        if let genre = sortedTracks.first?.genre {
-                            Text(genre)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
+//                        if let genre = album.tracks.first?.genre {
+//                            Text(genre)
+//                                .font(.subheadline)
+//                                .foregroundColor(.secondary)
+//                        }
                         
                         Text(totalDuration)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         
-                        Text("\(sortedTracks.count) songs")
+                        Text("\(album.trackCount) songs")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -145,7 +137,7 @@ struct AlbumDetailView: View {
                 // Track rows
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(sortedTracks) { track in
+                        ForEach(album.tracks) { track in
                             AlbumTrackRow(
                                 track: track,
                                 albumArtist: album.albumArtistName ?? album.artist?.name ?? "",
@@ -154,7 +146,9 @@ struct AlbumDetailView: View {
                                     handleTrackSelection(track: track, modifiers: modifiers)
                                 },
                                 onDoubleClick: {
-                                    audioPlayer.queueTracks([track], startPlaying: true)
+                                    Task {
+                                        await vm.playTracks(tracks: [track])
+                                    }
                                 }
                             )
                         }
@@ -179,16 +173,20 @@ struct AlbumDetailView: View {
             .buttonStyle(.plain)
             .padding(16)
         }
+        
+        .task() {
+//            await vm.loadAlbumDetail()
+        }
     }
     
     private func handleTrackSelection(track: Track, modifiers: NSEvent.ModifierFlags) {
         if modifiers.contains(.shift), let lastID = lastSelectedTrackID {
             // Shift-click: select range
-            if let startIndex = sortedTracks.firstIndex(where: { $0.id == lastID }),
-               let endIndex = sortedTracks.firstIndex(where: { $0.id == track.id }) {
+            if let startIndex = album.tracks.firstIndex(where: { $0.id == lastID }),
+               let endIndex = album.tracks.firstIndex(where: { $0.id == track.id }) {
                 let range = min(startIndex, endIndex)...max(startIndex, endIndex)
                 for index in range {
-                    selectedTrackIDs.insert(sortedTracks[index].id)
+                    selectedTrackIDs.insert(album.tracks[index].id)
                 }
             }
         } else {
@@ -216,26 +214,26 @@ struct AlbumTrackRow: View {
     
     private static let singleClickDelay: TimeInterval = 0.25
     
+    var trackArtist: String {
+        track.recording?.artists.first?.name ?? ""
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                if let trackNum = track.trackNumber {
-                    Text("\(trackNum)")
-                        .frame(width: 40, alignment: .leading)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("-")
-                        .frame(width: 40, alignment: .leading)
-                        .foregroundColor(.secondary)
-                }
+                
+                Text("\(track.position)")
+                    .frame(width: 40, alignment: .leading)
+                    .foregroundColor(.secondary)
+
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(track.title)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     // Show artist if different from album artist
-                    if track.artistName != albumArtist {
-                        Text(track.artistName)
+                    if trackArtist != "" && trackArtist != albumArtist {
+                        Text(trackArtist)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

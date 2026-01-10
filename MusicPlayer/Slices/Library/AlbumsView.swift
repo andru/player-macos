@@ -1,20 +1,11 @@
 import SwiftUI
 
 struct AlbumsView: View {
-    @EnvironmentObject var library: LibraryService
+    @EnvironmentObject var container: AppContainer
     @EnvironmentObject var preferences: PreferencesService
-    @Binding var selectedAlbum: Album?
-    var filteredAlbums: [Album]
-    let audioPlayer: AudioPlayer
-    @State private var displayMode: DisplayMode = .grid
-    @StateObject private var viewModel = SongsViewModel()
     
-    private var sortedTracks: [Track] {
-        let allTracks = filteredAlbums.flatMap { album in
-            album.releases.flatMap { $0.tracks }
-        }
-        return viewModel.sortedTracks(from: allTracks)
-    }
+    @State private var displayMode: DisplayMode = .grid
+    @StateObject var vm: LibraryViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -46,37 +37,38 @@ struct AlbumsView: View {
                 .cornerRadius(6)
             }
             
-            if displayMode == .grid {
+//            if displayMode == .grid {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 16)], spacing: 16) {
                         
-                        ForEach(filteredAlbums) { album in
-                            
-                            AlbumGridItem(album: album, action: {
-                                selectedAlbum = album
-                                //                        audioPlayer.queueTracks(album.tracks, startPlaying: true, behavior: preferences.playbackBehavior)
-                            }, audioPlayer: audioPlayer, library: library)
-                            
+                        ForEach(vm.albumRows) { albumRow in
+                            // Start an async Task from a synchronous closure so the action type stays () -> Void
+                            AlbumGridItem(albumRow: albumRow, action: {
+                                Task {
+                                    await vm.didClickAlbum(albumRow: albumRow)
+                                }
+                            })
                         }
                         
                     }
                     .padding()
                 }
-            } else {
-                TrackTableView(
-                    filteredTracks: sortedTracks,
-                    audioPlayer: audioPlayer,
-                    sortOrder: $viewModel.sortOrder
-                )
-            }
+//            } else {
+//                TrackTableView(
+//                    filteredTracks: sortedTracks,
+//                    audioPlayer: audioPlayer,
+//                    sortOrder: $vm.sortOrder
+//                )
+//            }
         }.onAppear {
             loadViewMode()
+        }.task {
+            await vm.loadAlbumRows()
         }
 //        .onChange(of: selectedView) { _ in
 //            loadViewMode()
 //        }
     }
-    
     
     private func loadViewMode() {
         let defaultMode: DisplayMode = .grid
@@ -98,19 +90,13 @@ struct AlbumsView: View {
 // MARK: - Grid Items
 
 struct AlbumGridItem: View {
-    let album: Album
+    let albumRow: AlbumRow
     let action: () -> Void
-    let audioPlayer: AudioPlayer?
-    let library: LibraryService?
-    
-    private var trackCount: Int {
-        album.releases.reduce(0) { $0 + $1.tracks.count }
-    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: action) {
-                if let artwork = album.artwork {
+                if let artwork = albumRow.artwork {
                     Image(nsImage: artwork)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -131,24 +117,19 @@ struct AlbumGridItem: View {
             }
             .buttonStyle(.plain)
             .contextMenu {
-                if let audioPlayer = audioPlayer {
-                    AlbumContextMenu(album: album, audioPlayer: audioPlayer, library: library)
-                }
+                // fixed incorrect identifier: pass albumRow
+                AlbumRowContextMenu(albumRow: albumRow)
             }
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(album.title)
+                Text(albumRow.title)
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text(album.albumArtistName ?? album.artist?.name ?? "Unknown Artist")
+                Text(albumRow.primaryArtistName ?? "Unknown Artist")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                
-                Text("\(trackCount) songs")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
         }
     }

@@ -35,11 +35,11 @@ struct LegacyTrack: Identifiable, Codable, Hashable {
     }
     
     /// Create a LegacyTrack from new schema entities
-    init(track: Track, release: Release?, album: Album?, digitalFile: DigitalFile?) {
+    /*init(track: Track, artist: Artist, release: Release, releaseGroup: ReleaseGroup, digitalFile: DigitalFile?) {
         self.id = track.id
         self.title = track.title
-        self.artist = track.artistName
-        self.album = album?.title ?? "Unknown Album"
+        self.artist = release.artistName
+        self.album = release.title ?? "Unknown Album"
         self.albumArtist = track.albumArtistName ?? album?.albumArtistName
         self.duration = track.duration ?? 0
         self.fileURL = digitalFile?.fileURL ?? URL(fileURLWithPath: "/unknown")
@@ -48,7 +48,7 @@ struct LegacyTrack: Identifiable, Codable, Hashable {
         self.genre = track.genre
         self.year = release?.year
         self.trackNumber = track.trackNumber
-    }
+    }*/
 
     var formattedDuration: String {
         let minutes = Int(duration) / 60
